@@ -209,6 +209,40 @@ automation:
 - Reload the integration
 - Check that PulseAudio is running on the server
 
+## Changelog
+
+### v0.1.1 (2026-01-16)
+
+**Bug Fixes:**
+- Fixed 405 error on `/api/audio/sink/default` endpoint
+- Removed unnecessary API call - default sink is already included in sinks response
+- Improved performance by reducing API calls from 3 to 2
+
+**Improvements:**
+- Added comprehensive error handling to all services
+- Added input validation schemas for all services
+- Added URL encoding for sink names to prevent malformed URLs
+- Added JSON decode error handling
+- Added availability tracking for all entities
+- Fixed device info consistency across entity types
+- Optimized coordinator to use parallel API calls (3x faster)
+- Added proper service cleanup on integration unload
+- Added support for multiple audio server instances
+
+### v0.1.0 (2026-01-16)
+
+**Initial Release:**
+- Dynamic audio sink discovery with media player entities
+- Volume control and mute functionality per sink
+- Switch entities for default sink selection
+- Sensor for active audio streams tracking
+- Custom services for multi-room audio (combined sinks, stereo pairs)
+- Stream management (move streams, per-app volume control)
+- UI-based configuration flow
+- English and Polish localizations
+- Auto-discovery of new/removed sinks
+- 5-second polling interval for real-time updates
+
 ## Development
 
 This integration is open source and contributions are welcome!
