@@ -35,15 +35,15 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch data from API."""
         try:
             # Fetch all data in parallel
-            sinks_data, sink_inputs_data, default_sink_data = await asyncio.gather(
+            # Note: sinks_data already contains default_sink, no separate call needed
+            sinks_data, sink_inputs_data = await asyncio.gather(
                 self.client.get_sinks(),
                 self.client.get_sink_inputs(),
-                self.client.get_default_sink(),
             )
 
             return {
                 "sinks": sinks_data.get("sinks", []),
-                "default_sink": default_sink_data.get("default_sink"),
+                "default_sink": sinks_data.get("default_sink"),
                 "sink_inputs": sink_inputs_data.get("sink_inputs", []),
             }
         except ApiClientError as err:
