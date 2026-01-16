@@ -2,21 +2,27 @@
 
 Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-server) from Home Assistant. This integration provides comprehensive audio management including:
 
+- **Full playback control** (play, pause, stop, next, previous)
+- **Media information display** (track name, artist, album)
 - Dynamic audio sink (output) discovery
 - Volume control per sink
 - Multi-room audio support (combined sinks and stereo pairs)
 - Individual stream control (per-app volume)
 - Bluetooth device management
 - Real-time updates via polling
+- **Works on the Media Dashboard!**
 
 ## Features
 
 ### Media Player Entities
 Each audio sink appears as a media player entity with:
+- **Playback controls** (play, pause, stop, next, previous)
+- **Now playing info** (track name, artist, album, position)
 - Volume control (0-100%)
 - Mute/unmute
 - Source selection (switch between sinks)
-- State tracking (playing/idle/off)
+- State tracking (playing/paused/idle/off)
+- **Full Media Dashboard support**
 
 ### Switch Entities
 - Default sink selection switches
@@ -210,6 +216,23 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.2.0 (2026-01-16)
+
+**Major Features:**
+- ✨ Added full playback control support (play, pause, stop, next, previous)
+- ✨ Added media information display (track name, artist, album)
+- ✨ Added media position tracking
+- ✨ Media player entities now work fully on the Media Dashboard
+- ✨ Integration now controls both audio routing AND playback
+
+**Technical Changes:**
+- Added playback API endpoints to API client
+- Added playback status fetching to coordinator
+- Enhanced media player entity with playback features
+- Added media_title, media_artist, media_album_name properties
+- Added media_position property
+- Added playback control methods (play, pause, stop, next, previous)
 
 ### v0.1.1 (2026-01-16)
 

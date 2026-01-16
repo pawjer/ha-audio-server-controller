@@ -175,6 +175,30 @@ class LinuxAudioServerApiClient:
         """Get all Bluetooth devices."""
         return await self._request("GET", "/api/bluetooth/devices")
 
+    async def get_playback_status(self) -> dict[str, Any]:
+        """Get current playback state and track information."""
+        return await self._request("GET", "/api/playback/status")
+
+    async def play(self) -> dict[str, Any]:
+        """Start or resume playback."""
+        return await self._request("POST", "/api/playback/play")
+
+    async def pause(self) -> dict[str, Any]:
+        """Pause current playback."""
+        return await self._request("POST", "/api/playback/pause")
+
+    async def stop(self) -> dict[str, Any]:
+        """Stop playback completely."""
+        return await self._request("POST", "/api/playback/stop")
+
+    async def next_track(self) -> dict[str, Any]:
+        """Skip to the next track."""
+        return await self._request("POST", "/api/playback/next")
+
+    async def previous_track(self) -> dict[str, Any]:
+        """Go back to the previous track."""
+        return await self._request("POST", "/api/playback/previous")
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""

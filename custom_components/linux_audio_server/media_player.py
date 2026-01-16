@@ -61,6 +61,11 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         MediaPlayerEntityFeature.VOLUME_SET
         | MediaPlayerEntityFeature.VOLUME_MUTE
         | MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.PLAY
+        | MediaPlayerEntityFeature.PAUSE
+        | MediaPlayerEntityFeature.STOP
+        | MediaPlayerEntityFeature.NEXT_TRACK
+        | MediaPlayerEntityFeature.PREVIOUS_TRACK
     )
 
     def __init__(
@@ -108,10 +113,21 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if sink is None:
             return MediaPlayerState.OFF
 
-        # Map PulseAudio states to media player states
+        # Use playback state if available
+        playback = self.coordinator.data.get("playback", {})
+        playback_state = playback.get("state")
+
+        if playback_state == "playing":
+            return MediaPlayerState.PLAYING
+        elif playback_state == "paused":
+            return MediaPlayerState.PAUSED
+        elif playback_state == "stopped":
+            return MediaPlayerState.IDLE
+
+        # Fallback to sink state if no playback info
         pa_state = sink.get("state", "IDLE")
         if pa_state == "RUNNING":
-            return MediaPlayerState.PLAYING
+            return MediaPlayerState.ON
         elif pa_state in ("IDLE", "SUSPENDED"):
             return MediaPlayerState.IDLE
         else:
@@ -144,6 +160,50 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             sink["description"]
             for sink in self.coordinator.data.get("sinks", [])
         ]
+
+    @property
+    def media_content_type(self) -> str | None:
+        """Return the content type of current playing media."""
+        playback = self.coordinator.data.get("playback", {})
+        if playback.get("track"):
+            return "music"
+        return None
+
+    @property
+    def media_title(self) -> str | None:
+        """Return the title of current playing media."""
+        playback = self.coordinator.data.get("playback", {})
+        track = playback.get("track")
+        if track:
+            return track.get("name")
+        return None
+
+    @property
+    def media_artist(self) -> str | None:
+        """Return the artist of current playing media."""
+        playback = self.coordinator.data.get("playback", {})
+        track = playback.get("track")
+        if track:
+            return track.get("artist")
+        return None
+
+    @property
+    def media_album_name(self) -> str | None:
+        """Return the album name of current playing media."""
+        playback = self.coordinator.data.get("playback", {})
+        track = playback.get("track")
+        if track:
+            return track.get("album")
+        return None
+
+    @property
+    def media_position(self) -> int | None:
+        """Return the position of current playing media in seconds."""
+        playback = self.coordinator.data.get("playback", {})
+        time_position = playback.get("time_position")
+        if time_position is not None:
+            return time_position // 1000  # Convert ms to seconds
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -179,3 +239,28 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                 return
 
         _LOGGER.warning("Source '%s' not found in available sinks", source)
+
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        await self.coordinator.client.play()
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        await self.coordinator.client.pause()
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_stop(self) -> None:
+        """Send stop command."""
+        await self.coordinator.client.stop()
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        await self.coordinator.client.next_track()
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        await self.coordinator.client.previous_track()
+        await self.coordinator.async_request_refresh()

@@ -36,15 +36,17 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             # Fetch all data in parallel
             # Note: sinks_data already contains default_sink, no separate call needed
-            sinks_data, sink_inputs_data = await asyncio.gather(
+            sinks_data, sink_inputs_data, playback_data = await asyncio.gather(
                 self.client.get_sinks(),
                 self.client.get_sink_inputs(),
+                self.client.get_playback_status(),
             )
 
             return {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
                 "sink_inputs": sink_inputs_data.get("sink_inputs", []),
+                "playback": playback_data,
             }
         except ApiClientError as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
