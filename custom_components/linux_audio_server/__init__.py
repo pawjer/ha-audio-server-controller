@@ -23,11 +23,22 @@ SERVICE_CREATE_STEREO_PAIR = "create_stereo_pair"
 SERVICE_DELETE_COMBINED_SINK = "delete_combined_sink"
 SERVICE_MOVE_STREAM = "move_stream"
 SERVICE_SET_STREAM_VOLUME = "set_stream_volume"
+SERVICE_ADD_RADIO_STREAM = "add_radio_stream"
+SERVICE_DELETE_RADIO_STREAM = "delete_radio_stream"
+SERVICE_PLAY_RADIO_STREAM = "play_radio_stream"
+SERVICE_PLAY_RADIO_URL = "play_radio_url"
+SERVICE_BLUETOOTH_PAIR = "bluetooth_pair"
+SERVICE_BLUETOOTH_CONNECT = "bluetooth_connect"
+SERVICE_BLUETOOTH_DISCONNECT = "bluetooth_disconnect"
+SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT = "bluetooth_connect_and_set_default"
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
     Platform.SWITCH,
     Platform.SENSOR,
+    Platform.SELECT,
+    Platform.BUTTON,
+    Platform.DEVICE_TRACKER,
 ]
 
 
@@ -153,6 +164,127 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to set stream volume: %s", err)
             raise HomeAssistantError(f"Failed to set stream volume: {err}") from err
 
+    async def handle_add_radio_stream(call: ServiceCall) -> None:
+        """Handle adding a radio stream."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            name = call.data["name"]
+            url = call.data["url"]
+            await coordinator.client.add_radio_stream(name, url)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Added radio stream '%s'", name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to add radio stream: %s", err)
+            raise HomeAssistantError(f"Failed to add radio stream: {err}") from err
+
+    async def handle_delete_radio_stream(call: ServiceCall) -> None:
+        """Handle deleting a radio stream."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            name = call.data["name"]
+            await coordinator.client.delete_radio_stream(name)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Deleted radio stream '%s'", name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to delete radio stream: %s", err)
+            raise HomeAssistantError(f"Failed to delete radio stream: {err}") from err
+
+    async def handle_play_radio_stream(call: ServiceCall) -> None:
+        """Handle playing a radio stream."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            name = call.data["name"]
+            await coordinator.client.play_radio_stream(name)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Playing radio stream '%s'", name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to play radio stream: %s", err)
+            raise HomeAssistantError(f"Failed to play radio stream: {err}") from err
+
+    async def handle_play_radio_url(call: ServiceCall) -> None:
+        """Handle playing a radio URL."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            url = call.data["url"]
+            await coordinator.client.play_radio_url(url)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Playing radio URL: %s", url)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to play radio URL: %s", err)
+            raise HomeAssistantError(f"Failed to play radio URL: {err}") from err
+
+    async def handle_bluetooth_pair(call: ServiceCall) -> None:
+        """Handle pairing a Bluetooth device."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            address = call.data["address"]
+            await coordinator.client.pair_bluetooth(address)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Paired Bluetooth device %s", address)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to pair Bluetooth device: %s", err)
+            raise HomeAssistantError(f"Failed to pair Bluetooth device: {err}") from err
+
+    async def handle_bluetooth_connect(call: ServiceCall) -> None:
+        """Handle connecting a Bluetooth device."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            address = call.data["address"]
+            await coordinator.client.connect_bluetooth(address)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Connected Bluetooth device %s", address)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to connect Bluetooth device: %s", err)
+            raise HomeAssistantError(f"Failed to connect Bluetooth device: {err}") from err
+
+    async def handle_bluetooth_disconnect(call: ServiceCall) -> None:
+        """Handle disconnecting a Bluetooth device."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            address = call.data["address"]
+            await coordinator.client.disconnect_bluetooth(address)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Disconnected Bluetooth device %s", address)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to disconnect Bluetooth device: %s", err)
+            raise HomeAssistantError(f"Failed to disconnect Bluetooth device: {err}") from err
+
+    async def handle_bluetooth_connect_and_set_default(call: ServiceCall) -> None:
+        """Handle connecting and setting Bluetooth device as default."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            address = call.data["address"]
+            await coordinator.client.connect_and_set_default_bluetooth(address)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Connected and set Bluetooth device %s as default", address)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to connect and set default Bluetooth device: %s", err)
+            raise HomeAssistantError(f"Failed to connect and set default Bluetooth device: {err}") from err
+
     # Service schemas
     create_combined_sink_schema = vol.Schema({
         vol.Required("name"): cv.string,
@@ -177,6 +309,27 @@ async def _async_register_services(hass: HomeAssistant) -> None:
     set_stream_volume_schema = vol.Schema({
         vol.Required("stream_index"): vol.All(int, vol.Range(min=0)),
         vol.Required("volume"): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=1.0)),
+    })
+
+    add_radio_stream_schema = vol.Schema({
+        vol.Required("name"): cv.string,
+        vol.Required("url"): cv.string,
+    })
+
+    delete_radio_stream_schema = vol.Schema({
+        vol.Required("name"): cv.string,
+    })
+
+    play_radio_stream_schema = vol.Schema({
+        vol.Required("name"): cv.string,
+    })
+
+    play_radio_url_schema = vol.Schema({
+        vol.Required("url"): cv.string,
+    })
+
+    bluetooth_address_schema = vol.Schema({
+        vol.Required("address"): cv.string,
     })
 
     # Register services with schemas
@@ -210,6 +363,54 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         handle_set_stream_volume,
         schema=set_stream_volume_schema,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_RADIO_STREAM,
+        handle_add_radio_stream,
+        schema=add_radio_stream_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DELETE_RADIO_STREAM,
+        handle_delete_radio_stream,
+        schema=delete_radio_stream_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PLAY_RADIO_STREAM,
+        handle_play_radio_stream,
+        schema=play_radio_stream_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PLAY_RADIO_URL,
+        handle_play_radio_url,
+        schema=play_radio_url_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_BLUETOOTH_PAIR,
+        handle_bluetooth_pair,
+        schema=bluetooth_address_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_BLUETOOTH_CONNECT,
+        handle_bluetooth_connect,
+        schema=bluetooth_address_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_BLUETOOTH_DISCONNECT,
+        handle_bluetooth_disconnect,
+        schema=bluetooth_address_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT,
+        handle_bluetooth_connect_and_set_default,
+        schema=bluetooth_address_schema,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -224,5 +425,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_DELETE_COMBINED_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_MOVE_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_VOLUME)
+            hass.services.async_remove(DOMAIN, SERVICE_ADD_RADIO_STREAM)
+            hass.services.async_remove(DOMAIN, SERVICE_DELETE_RADIO_STREAM)
+            hass.services.async_remove(DOMAIN, SERVICE_PLAY_RADIO_STREAM)
+            hass.services.async_remove(DOMAIN, SERVICE_PLAY_RADIO_URL)
+            hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_PAIR)
+            hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_CONNECT)
+            hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_DISCONNECT)
+            hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT)
 
     return unload_ok

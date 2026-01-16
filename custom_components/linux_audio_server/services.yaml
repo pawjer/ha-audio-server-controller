@@ -99,3 +99,106 @@ set_stream_volume:
           min: 0.0
           max: 1.0
           step: 0.01
+
+add_radio_stream:
+  name: Add Radio Stream
+  description: Add a new internet radio station to the list
+  fields:
+    name:
+      name: Name
+      description: Display name for the radio station
+      required: true
+      example: "Jazz FM"
+      selector:
+        text:
+    url:
+      name: URL
+      description: Direct stream URL
+      required: true
+      example: "http://jazz-wr11.ice.infomaniak.ch/jazz-wr11-128.mp3"
+      selector:
+        text:
+
+delete_radio_stream:
+  name: Delete Radio Stream
+  description: Remove a radio station from the list
+  fields:
+    name:
+      name: Name
+      description: Name of the radio station to delete
+      required: true
+      example: "Jazz FM"
+      selector:
+        text:
+
+play_radio_stream:
+  name: Play Radio Stream
+  description: Play a saved radio station
+  fields:
+    name:
+      name: Name
+      description: Name of the radio station to play
+      required: true
+      example: "Jazz FM"
+      selector:
+        text:
+
+play_radio_url:
+  name: Play Radio URL
+  description: Play any internet radio stream by direct URL
+  fields:
+    url:
+      name: URL
+      description: Direct stream URL to play
+      required: true
+      example: "http://stream.example.com/radio.mp3"
+      selector:
+        text:
+
+bluetooth_pair:
+  name: Pair Bluetooth Device
+  description: Pair with a Bluetooth device
+  fields:
+    address:
+      name: Address
+      description: Bluetooth MAC address
+      required: true
+      example: "F4:9D:8A:5D:E7:28"
+      selector:
+        text:
+
+bluetooth_connect:
+  name: Connect Bluetooth Device
+  description: Connect to a paired Bluetooth device
+  fields:
+    address:
+      name: Address
+      description: Bluetooth MAC address
+      required: true
+      example: "F4:9D:8A:5D:E7:28"
+      selector:
+        text:
+
+bluetooth_disconnect:
+  name: Disconnect Bluetooth Device
+  description: Disconnect from a Bluetooth device
+  fields:
+    address:
+      name: Address
+      description: Bluetooth MAC address
+      required: true
+      example: "F4:9D:8A:5D:E7:28"
+      selector:
+        text:
+
+bluetooth_connect_and_set_default:
+  name: Connect Bluetooth and Set Default
+  description: Connect to a Bluetooth device and set it as the default audio output
+  fields:
+    address:
+      name: Address
+      description: Bluetooth MAC address
+      required: true
+      example: "F4:9D:8A:5D:E7:28"
+      selector:
+        text:

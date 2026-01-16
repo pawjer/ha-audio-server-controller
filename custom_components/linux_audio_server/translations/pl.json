@@ -88,6 +88,90 @@
           "description": "Poziom głośności (0.0 do 1.0)."
         }
       }
+    },
+    "add_radio_stream": {
+      "name": "Dodaj stację radiową",
+      "description": "Dodaj nową stację radiową internetową do listy.",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa wyświetlana stacji radiowej."
+        },
+        "url": {
+          "name": "URL",
+          "description": "Bezpośredni adres strumienia."
+        }
+      }
+    },
+    "delete_radio_stream": {
+      "name": "Usuń stację radiową",
+      "description": "Usuń stację radiową z listy.",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa stacji radiowej do usunięcia."
+        }
+      }
+    },
+    "play_radio_stream": {
+      "name": "Odtwórz stację radiową",
+      "description": "Odtwórz zapisaną stację radiową.",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa stacji radiowej do odtworzenia."
+        }
+      }
+    },
+    "play_radio_url": {
+      "name": "Odtwórz URL radia",
+      "description": "Odtwórz dowolny strumień radiowy internetowy przez bezpośredni URL.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Bezpośredni adres strumienia do odtworzenia."
+        }
+      }
+    },
+    "bluetooth_pair": {
+      "name": "Sparuj urządzenie Bluetooth",
+      "description": "Sparuj z urządzeniem Bluetooth.",
+      "fields": {
+        "address": {
+          "name": "Adres",
+          "description": "Adres MAC Bluetooth."
+        }
+      }
+    },
+    "bluetooth_connect": {
+      "name": "Połącz urządzenie Bluetooth",
+      "description": "Połącz z sparowanym urządzeniem Bluetooth.",
+      "fields": {
+        "address": {
+          "name": "Adres",
+          "description": "Adres MAC Bluetooth."
+        }
+      }
+    },
+    "bluetooth_disconnect": {
+      "name": "Rozłącz urządzenie Bluetooth",
+      "description": "Rozłącz urządzenie Bluetooth.",
+      "fields": {
+        "address": {
+          "name": "Adres",
+          "description": "Adres MAC Bluetooth."
+        }
+      }
+    },
+    "bluetooth_connect_and_set_default": {
+      "name": "Połącz Bluetooth i ustaw domyślne",
+      "description": "Połącz z urządzeniem Bluetooth i ustaw je jako domyślne wyjście audio.",
+      "fields": {
+        "address": {
+          "name": "Adres",
+          "description": "Adres MAC Bluetooth."
+        }
+      }
     }
   }
 }

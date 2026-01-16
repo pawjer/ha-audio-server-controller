@@ -34,7 +34,7 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
         try:
-            # Fetch all data in parallel
+            # Fetch core data in parallel
             # Note: sinks_data already contains default_sink, no separate call needed
             sinks_data, sink_inputs_data, playback_data = await asyncio.gather(
                 self.client.get_sinks(),
@@ -42,11 +42,29 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.client.get_playback_status(),
             )
 
+            # Gracefully fetch optional features (radio and Bluetooth)
+            # If these fail, the integration continues to work
+            radio_data = {}
+            try:
+                radio_data = await self.client.get_radio_streams()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch radio streams: %s", err)
+                radio_data = {"streams": {}}
+
+            bluetooth_data = {}
+            try:
+                bluetooth_data = await self.client.get_bluetooth_devices()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch Bluetooth devices: %s", err)
+                bluetooth_data = {"devices": []}
+
             return {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
                 "sink_inputs": sink_inputs_data.get("sink_inputs", []),
                 "playback": playback_data,
+                "radio_streams": radio_data.get("streams", {}),
+                "bluetooth_devices": bluetooth_data.get("devices", []),
             }
         except ApiClientError as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err

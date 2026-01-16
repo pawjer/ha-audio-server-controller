@@ -4,11 +4,12 @@ Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-serve
 
 - **Full playback control** (play, pause, stop, next, previous)
 - **Media information display** (track name, artist, album)
+- **Internet radio management** (add, remove, play stations)
+- **Bluetooth device management** (scan, pair, connect, disconnect)
 - Dynamic audio sink (output) discovery
 - Volume control per sink
 - Multi-room audio support (combined sinks and stereo pairs)
 - Individual stream control (per-app volume)
-- Bluetooth device management
 - Real-time updates via polling
 - **Works on the Media Dashboard!**
 
@@ -30,12 +31,29 @@ Each audio sink appears as a media player entity with:
 ### Sensor Entities
 - Active streams counter with detailed stream information
 
+### Select Entities
+- **Radio station selector** - Choose and play internet radio from dropdown
+
+### Button Entities
+- **Bluetooth scan button** - Scan for nearby Bluetooth devices
+
+### Device Tracker Entities
+- **Bluetooth device trackers** - Monitor connection status of paired Bluetooth audio devices
+
 ### Custom Services
 - `linux_audio_server.create_combined_sink` - Create multi-room audio setups
 - `linux_audio_server.create_stereo_pair` - Create true stereo pairs
 - `linux_audio_server.delete_combined_sink` - Remove multi-room setups
 - `linux_audio_server.move_stream` - Route specific apps to different outputs
 - `linux_audio_server.set_stream_volume` - Control volume per application
+- `linux_audio_server.add_radio_stream` - Add new internet radio station
+- `linux_audio_server.delete_radio_stream` - Remove radio station
+- `linux_audio_server.play_radio_stream` - Play saved radio station
+- `linux_audio_server.play_radio_url` - Play any radio stream by URL
+- `linux_audio_server.bluetooth_pair` - Pair with Bluetooth device
+- `linux_audio_server.bluetooth_connect` - Connect to Bluetooth device
+- `linux_audio_server.bluetooth_disconnect` - Disconnect from Bluetooth device
+- `linux_audio_server.bluetooth_connect_and_set_default` - Connect and set as default output
 
 ## Installation
 
@@ -151,6 +169,71 @@ data:
   sink_name: "bluez_output.F4_9D_8A_5D_E7_28.1"
 ```
 
+### Manage Radio Stations
+
+Add a new internet radio station:
+
+```yaml
+service: linux_audio_server.add_radio_stream
+data:
+  name: "Jazz FM"
+  url: "http://jazz-wr11.ice.infomaniak.ch/jazz-wr11-128.mp3"
+```
+
+Play a saved radio station:
+
+```yaml
+service: linux_audio_server.play_radio_stream
+data:
+  name: "Jazz FM"
+```
+
+Or use the radio station selector entity to choose from a dropdown in the UI.
+
+Play any radio stream by URL without saving:
+
+```yaml
+service: linux_audio_server.play_radio_url
+data:
+  url: "http://stream.example.com/radio.mp3"
+```
+
+### Manage Bluetooth Devices
+
+Scan for nearby Bluetooth devices:
+
+Use the "Scan for Bluetooth Devices" button entity, or call the service:
+
+```yaml
+service: button.press
+target:
+  entity_id: button.linux_audio_server_scan_for_bluetooth_devices
+```
+
+Pair with a Bluetooth device:
+
+```yaml
+service: linux_audio_server.bluetooth_pair
+data:
+  address: "F4:9D:8A:5D:E7:28"
+```
+
+Connect to a paired device:
+
+```yaml
+service: linux_audio_server.bluetooth_connect
+data:
+  address: "F4:9D:8A:5D:E7:28"
+```
+
+Connect and automatically set as default output:
+
+```yaml
+service: linux_audio_server.bluetooth_connect_and_set_default
+data:
+  address: "F4:9D:8A:5D:E7:28"
+```
+
 ## Example Automations
 
 ### Auto-Switch to Bluetooth When Connected
@@ -216,6 +299,28 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.3.0 (2026-01-16)
+
+**Major Features:**
+- ✨ Added internet radio management (add, delete, play stations)
+- ✨ Added radio station selector entity (dropdown in UI)
+- ✨ Added Bluetooth device management (scan, pair, connect, disconnect)
+- ✨ Added Bluetooth device tracker entities (monitor connection status)
+- ✨ Added Bluetooth scan button entity
+- ✨ Support for playing arbitrary radio URLs
+
+**Technical Changes:**
+- Added radio API endpoints to client (get_radio_streams, add_radio_stream, delete_radio_stream, play_radio_stream, play_radio_url)
+- Added Bluetooth API endpoints to client (scan_bluetooth, pair_bluetooth, connect_bluetooth, disconnect_bluetooth, connect_and_set_default_bluetooth)
+- Added SelectEntity platform for radio station selection
+- Added ButtonEntity platform for Bluetooth scanning
+- Added DeviceTrackerEntity platform for Bluetooth devices
+- Enhanced coordinator with graceful error handling for optional features (radio/Bluetooth)
+- Added 8 new services for radio and Bluetooth management
+- Added comprehensive service descriptions in services.yaml
+- Added Polish translations for new entities and services
+- Radio and Bluetooth features fail gracefully if not available
 
 ### v0.2.0 (2026-01-16)
 

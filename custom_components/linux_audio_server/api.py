@@ -199,6 +199,47 @@ class LinuxAudioServerApiClient:
         """Go back to the previous track."""
         return await self._request("POST", "/api/playback/previous")
 
+    async def get_radio_streams(self) -> dict[str, Any]:
+        """Get all radio streams."""
+        return await self._request("GET", "/api/radio/streams")
+
+    async def add_radio_stream(self, name: str, url: str) -> dict[str, Any]:
+        """Add a new radio stream."""
+        return await self._request("POST", "/api/radio/stream", {"name": name, "url": url})
+
+    async def delete_radio_stream(self, name: str) -> dict[str, Any]:
+        """Delete a radio stream."""
+        encoded_name = quote(name, safe="")
+        return await self._request("DELETE", f"/api/radio/stream/{encoded_name}")
+
+    async def play_radio_stream(self, name: str) -> dict[str, Any]:
+        """Play a predefined radio stream."""
+        return await self._request("POST", "/api/radio/play", {"stream": name})
+
+    async def play_radio_url(self, url: str) -> dict[str, Any]:
+        """Play arbitrary radio URL."""
+        return await self._request("POST", "/api/radio/play_url", {"url": url})
+
+    async def scan_bluetooth(self, duration: int = 10) -> dict[str, Any]:
+        """Scan for Bluetooth devices."""
+        return await self._request("POST", "/api/bluetooth/scan", {"duration": duration})
+
+    async def pair_bluetooth(self, address: str) -> dict[str, Any]:
+        """Pair with a Bluetooth device."""
+        return await self._request("POST", "/api/bluetooth/pair", {"address": address})
+
+    async def connect_bluetooth(self, address: str) -> dict[str, Any]:
+        """Connect to a Bluetooth device."""
+        return await self._request("POST", "/api/bluetooth/connect", {"address": address})
+
+    async def disconnect_bluetooth(self, address: str) -> dict[str, Any]:
+        """Disconnect from a Bluetooth device."""
+        return await self._request("POST", "/api/bluetooth/disconnect", {"address": address})
+
+    async def connect_and_set_default_bluetooth(self, address: str) -> dict[str, Any]:
+        """Connect to Bluetooth device and set as default output."""
+        return await self._request("POST", "/api/bluetooth/connect-and-set-default", {"address": address})
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""
