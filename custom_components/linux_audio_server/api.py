@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
-from aiohttp import ClientError, ClientTimeout
+from aiohttp import ClientError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +56,9 @@ class LinuxAudioServerApiClient:
         except asyncio.TimeoutError as err:
             _LOGGER.error("Timeout connecting to %s: %s", url, err)
             raise ApiClientError(f"Timeout connecting to {url}") from err
+        except (aiohttp.ContentTypeError, json.JSONDecodeError) as err:
+            _LOGGER.error("Invalid JSON response from %s: %s", url, err)
+            raise ApiClientError(f"Invalid JSON response from {url}") from err
         except ClientError as err:
             _LOGGER.error("Error communicating with %s: %s", url, err)
             raise ApiClientError(f"Error communicating with {url}") from err
@@ -88,21 +93,24 @@ class LinuxAudioServerApiClient:
 
     async def get_sink_volume(self, sink_name: str) -> dict[str, Any]:
         """Get the volume of a specific sink."""
-        return await self._request("GET", f"/api/audio/sink/{sink_name}/volume")
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("GET", f"/api/audio/sink/{encoded_name}/volume")
 
     async def set_sink_volume(self, sink_name: str, volume: float) -> dict[str, Any]:
         """Set the volume of a specific sink (0.0 to 1.0)."""
+        encoded_name = quote(sink_name, safe="")
         return await self._request(
             "POST",
-            f"/api/audio/sink/{sink_name}/volume",
+            f"/api/audio/sink/{encoded_name}/volume",
             {"volume": volume},
         )
 
     async def set_sink_mute(self, sink_name: str, mute: bool) -> dict[str, Any]:
         """Mute or unmute a specific sink."""
+        encoded_name = quote(sink_name, safe="")
         return await self._request(
             "POST",
-            f"/api/audio/sink/{sink_name}/mute",
+            f"/api/audio/sink/{encoded_name}/mute",
             {"mute": mute},
         )
 
@@ -160,7 +168,8 @@ class LinuxAudioServerApiClient:
 
     async def delete_combined_sink(self, sink_name: str) -> dict[str, Any]:
         """Delete a combined sink or stereo pair."""
-        return await self._request("DELETE", f"/api/audio/combined-sink/{sink_name}")
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("DELETE", f"/api/audio/combined-sink/{encoded_name}")
 
     async def get_bluetooth_devices(self) -> dict[str, Any]:
         """Get all Bluetooth devices."""

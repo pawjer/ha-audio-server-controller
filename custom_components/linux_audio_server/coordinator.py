@@ -1,6 +1,7 @@
 """Data update coordinator for Linux Audio Server."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 from typing import Any
@@ -34,9 +35,11 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch data from API."""
         try:
             # Fetch all data in parallel
-            sinks_data = await self.client.get_sinks()
-            sink_inputs_data = await self.client.get_sink_inputs()
-            default_sink_data = await self.client.get_default_sink()
+            sinks_data, sink_inputs_data, default_sink_data = await asyncio.gather(
+                self.client.get_sinks(),
+                self.client.get_sink_inputs(),
+                self.client.get_default_sink(),
+            )
 
             return {
                 "sinks": sinks_data.get("sinks", []),

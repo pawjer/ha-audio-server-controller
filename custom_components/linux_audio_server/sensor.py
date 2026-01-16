@@ -58,6 +58,11 @@ class ActiveStreamsSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> int:
         """Return the number of active streams."""
         return len(self.coordinator.data.get("sink_inputs", []))

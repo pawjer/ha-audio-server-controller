@@ -79,12 +79,19 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device information about this entity."""
+        sink = self._sink_data
+        device_name = sink.get("description", self._sink_name) if sink else self._sink_name
         return {
             "identifiers": {(DOMAIN, self._sink_name)},
-            "name": self._attr_name,
+            "name": device_name,
             "manufacturer": "Linux Audio Server",
             "model": "Audio Sink",
         }
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success and self._sink_data is not None
 
     @property
     def _sink_data(self) -> dict[str, Any] | None:
@@ -169,4 +176,6 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             if sink["description"] == source:
                 await self.coordinator.client.set_default_sink(sink["name"])
                 await self.coordinator.async_request_refresh()
-                break
+                return
+
+        _LOGGER.warning("Source '%s' not found in available sinks", source)

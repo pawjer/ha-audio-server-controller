@@ -68,12 +68,28 @@ class DefaultSinkSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device information about this entity."""
+        # Find sink description for consistent device naming
+        device_name = self._sink_name
+        for sink in self.coordinator.data.get("sinks", []):
+            if sink["name"] == self._sink_name:
+                device_name = sink.get("description", self._sink_name)
+                break
+
         return {
             "identifiers": {(DOMAIN, self._sink_name)},
-            "name": self._sink_name,
+            "name": device_name,
             "manufacturer": "Linux Audio Server",
             "model": "Audio Sink",
         }
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # Check if sink still exists in coordinator data
+        for sink in self.coordinator.data.get("sinks", []):
+            if sink["name"] == self._sink_name:
+                return self.coordinator.last_update_success
+        return False
 
     @property
     def is_on(self) -> bool:
