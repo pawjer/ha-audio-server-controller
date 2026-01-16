@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Linux Audio Server",
+        "description": "Skonfiguruj połączenie z serwerem audio",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie udało się połączyć z serwerem. Sprawdź adres hosta i port.",
+      "unknown": "Wystąpił nieoczekiwany błąd."
+    },
+    "abort": {
+      "already_configured": "Ten serwer jest już skonfigurowany."
+    }
+  },
+  "services": {
+    "create_combined_sink": {
+      "name": "Utwórz scalony sink",
+      "description": "Utwórz scalony sink dla audio wielopokojowego (odtwarza to samo audio na wszystkich sinkach).",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa scalonego sinka."
+        },
+        "sinks": {
+          "name": "Sinki",
+          "description": "Lista nazw sinków do scalenia."
+        }
+      }
+    },
+    "create_stereo_pair": {
+      "name": "Utwórz parę stereo",
+      "description": "Utwórz parę stereo, gdzie lewy głośnik odtwarza lewy kanał, a prawy głośnik prawy kanał.",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa pary stereo."
+        },
+        "left_sink": {
+          "name": "Lewy sink",
+          "description": "Nazwa sinka dla lewego kanału."
+        },
+        "right_sink": {
+          "name": "Prawy sink",
+          "description": "Nazwa sinka dla prawego kanału."
+        }
+      }
+    },
+    "delete_combined_sink": {
+      "name": "Usuń scalony sink",
+      "description": "Usuń scalony sink lub parę stereo.",
+      "fields": {
+        "sink_name": {
+          "name": "Nazwa sinka",
+          "description": "Nazwa scalonego sinka lub pary stereo do usunięcia."
+        }
+      }
+    },
+    "move_stream": {
+      "name": "Przenieś strumień",
+      "description": "Przenieś strumień audio na inne wyjście.",
+      "fields": {
+        "stream_index": {
+          "name": "Indeks strumienia",
+          "description": "Indeks strumienia do przeniesienia (z sensora aktywnych strumieni)."
+        },
+        "sink_name": {
+          "name": "Nazwa sinka",
+          "description": "Docelowa nazwa sinka, na który przenieść strumień."
+        }
+      }
+    },
+    "set_stream_volume": {
+      "name": "Ustaw głośność strumienia",
+      "description": "Ustaw głośność dla konkretnego strumienia audio.",
+      "fields": {
+        "stream_index": {
+          "name": "Indeks strumienia",
+          "description": "Indeks strumienia (z sensora aktywnych strumieni)."
+        },
+        "volume": {
+          "name": "Głośność",
+          "description": "Poziom głośności (0.0 do 1.0)."
+        }
+      }
+    }
+  }
+}

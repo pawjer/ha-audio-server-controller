@@ -1,0 +1,101 @@
+create_combined_sink:
+  name: Create Combined Sink
+  description: Create a combined sink for multi-room audio (plays same audio on all sinks)
+  fields:
+    name:
+      name: Name
+      description: Name for the combined sink
+      required: true
+      example: "whole_house"
+      selector:
+        text:
+    sinks:
+      name: Sinks
+      description: List of sink names to combine
+      required: true
+      example: ["bluez_output.F4_9D_8A_5D_E7_28.1", "alsa_output.pci-0000_00_1f.3.analog-stereo"]
+      selector:
+        object:
+
+create_stereo_pair:
+  name: Create Stereo Pair
+  description: Create a stereo pair where left speaker plays left channel and right speaker plays right channel
+  fields:
+    name:
+      name: Name
+      description: Name for the stereo pair
+      required: true
+      example: "my_stereo"
+      selector:
+        text:
+    left_sink:
+      name: Left Sink
+      description: Sink name for left channel
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
+    right_sink:
+      name: Right Sink
+      description: Sink name for right channel
+      required: true
+      example: "bluez_output.AA_BB_CC_DD_EE_FF.1"
+      selector:
+        text:
+
+delete_combined_sink:
+  name: Delete Combined Sink
+  description: Delete a combined sink or stereo pair
+  fields:
+    sink_name:
+      name: Sink Name
+      description: Name of the combined sink or stereo pair to delete
+      required: true
+      example: "whole_house"
+      selector:
+        text:
+
+move_stream:
+  name: Move Stream
+  description: Move an audio stream to a different output
+  fields:
+    stream_index:
+      name: Stream Index
+      description: Index of the stream to move (from active streams sensor)
+      required: true
+      example: 42
+      selector:
+        number:
+          min: 0
+          max: 1000
+    sink_name:
+      name: Sink Name
+      description: Target sink name to move the stream to
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
+
+set_stream_volume:
+  name: Set Stream Volume
+  description: Set volume for a specific audio stream
+  fields:
+    stream_index:
+      name: Stream Index
+      description: Index of the stream (from active streams sensor)
+      required: true
+      example: 42
+      selector:
+        number:
+          min: 0
+          max: 1000
+    volume:
+      name: Volume
+      description: Volume level (0.0 to 1.0)
+      required: true
+      example: 0.5
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.01

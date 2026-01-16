@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Linux Audio Server",
+        "description": "Set up your Linux Audio Server connection",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the server. Please check the host and port.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This server is already configured."
+    }
+  },
+  "services": {
+    "create_combined_sink": {
+      "name": "Create combined sink",
+      "description": "Create a combined sink for multi-room audio (plays same audio on all sinks).",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Name for the combined sink."
+        },
+        "sinks": {
+          "name": "Sinks",
+          "description": "List of sink names to combine."
+        }
+      }
+    },
+    "create_stereo_pair": {
+      "name": "Create stereo pair",
+      "description": "Create a stereo pair where left speaker plays left channel and right speaker plays right channel.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Name for the stereo pair."
+        },
+        "left_sink": {
+          "name": "Left sink",
+          "description": "Sink name for left channel."
+        },
+        "right_sink": {
+          "name": "Right sink",
+          "description": "Sink name for right channel."
+        }
+      }
+    },
+    "delete_combined_sink": {
+      "name": "Delete combined sink",
+      "description": "Delete a combined sink or stereo pair.",
+      "fields": {
+        "sink_name": {
+          "name": "Sink name",
+          "description": "Name of the combined sink or stereo pair to delete."
+        }
+      }
+    },
+    "move_stream": {
+      "name": "Move stream",
+      "description": "Move an audio stream to a different output.",
+      "fields": {
+        "stream_index": {
+          "name": "Stream index",
+          "description": "Index of the stream to move (from active streams sensor)."
+        },
+        "sink_name": {
+          "name": "Sink name",
+          "description": "Target sink name to move the stream to."
+        }
+      }
+    },
+    "set_stream_volume": {
+      "name": "Set stream volume",
+      "description": "Set volume for a specific audio stream.",
+      "fields": {
+        "stream_index": {
+          "name": "Stream index",
+          "description": "Index of the stream (from active streams sensor)."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "Volume level (0.0 to 1.0)."
+        }
+      }
+    }
+  }
+}

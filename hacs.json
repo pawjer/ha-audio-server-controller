@@ -1,0 +1,5 @@
+{
+  "name": "Linux Audio Server",
+  "render_readme": true,
+  "domains": ["media_player", "switch", "sensor"]
+}
