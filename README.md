@@ -18,6 +18,7 @@ Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-serve
 ### Media Player Entities
 Each audio sink appears as a media player entity with:
 - **Cast/Play media to sink** - Appears as audio output target in HA's media screen
+- **Browse media** - Browse and play radio stations directly from media player
 - **URL playback** - Play internet radio, Spotify URIs, local files, any Mopidy-supported URI
 - **Playback controls** (play, pause, stop, next, previous)
 - **Now playing info** (track name, artist, album, position)
@@ -393,6 +394,19 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.4.2 (2026-01-17)
+
+**Improvements:**
+- ✨ Added `BROWSE_MEDIA` feature - Browse and play radio stations directly from media player UI
+- 🔧 Improved media player visibility in Home Assistant's media interface
+
+**Technical Changes:**
+- Added `MediaPlayerEntityFeature.BROWSE_MEDIA` to supported features
+- Implemented `async_browse_media()` method showing radio stations library
+- Media players now appear more prominently in media dashboard and browser
+
+**Note:** After updating, reload the integration: Settings → Devices & Services → Linux Audio Server → ⋮ → Reload
 
 ### v0.4.1 (2026-01-17)
 

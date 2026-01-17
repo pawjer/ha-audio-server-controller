@@ -5,10 +5,13 @@ import logging
 from typing import Any
 
 from homeassistant.components.media_player import (
+    BrowseMedia,
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
+    MediaClass,
+    MediaType,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -67,6 +70,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.NEXT_TRACK
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
         | MediaPlayerEntityFeature.PLAY_MEDIA
+        | MediaPlayerEntityFeature.BROWSE_MEDIA
     )
 
     def __init__(
@@ -300,3 +304,39 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             await self.coordinator.client.play_radio_url(media_id)
 
         await self.coordinator.async_request_refresh()
+
+    async def async_browse_media(
+        self, media_content_type: str | None = None, media_content_id: str | None = None
+    ) -> BrowseMedia:
+        """Implement the browse_media media player platform method.
+
+        This provides basic media browsing support showing radio stations.
+        """
+        if media_content_id is None:
+            # Root level - show radio stations
+            radio_streams = self.coordinator.data.get("radio_streams", {})
+
+            children = [
+                BrowseMedia(
+                    title=name,
+                    media_class=MediaClass.MUSIC,
+                    media_content_type=MediaType.MUSIC,
+                    media_content_id=url,
+                    can_play=True,
+                    can_expand=False,
+                )
+                for name, url in radio_streams.items()
+            ]
+
+            return BrowseMedia(
+                title="Radio Stations",
+                media_class=MediaClass.DIRECTORY,
+                media_content_type="library",
+                media_content_id="root",
+                can_play=False,
+                can_expand=True,
+                children=children,
+            )
+
+        # If a specific ID is requested, we don't have subcategories
+        return None
