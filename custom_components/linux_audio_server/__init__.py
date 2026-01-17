@@ -23,6 +23,7 @@ SERVICE_CREATE_STEREO_PAIR = "create_stereo_pair"
 SERVICE_DELETE_COMBINED_SINK = "delete_combined_sink"
 SERVICE_MOVE_STREAM = "move_stream"
 SERVICE_SET_STREAM_VOLUME = "set_stream_volume"
+SERVICE_SET_STREAM_MUTE = "set_stream_mute"
 SERVICE_ADD_RADIO_STREAM = "add_radio_stream"
 SERVICE_DELETE_RADIO_STREAM = "delete_radio_stream"
 SERVICE_PLAY_RADIO_STREAM = "play_radio_stream"
@@ -170,6 +171,22 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         except ApiClientError as err:
             _LOGGER.error("Failed to set stream volume: %s", err)
             raise HomeAssistantError(f"Failed to set stream volume: {err}") from err
+
+    async def handle_set_stream_mute(call: ServiceCall) -> None:
+        """Handle muting/unmuting a stream."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            stream_index = call.data["stream_index"]
+            mute = call.data["mute"]
+            await coordinator.client.set_stream_mute(stream_index, mute)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Set stream %s mute to %s", stream_index, mute)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to set stream mute: %s", err)
+            raise HomeAssistantError(f"Failed to set stream mute: {err}") from err
 
     async def handle_add_radio_stream(call: ServiceCall) -> None:
         """Handle adding a radio stream."""
@@ -416,6 +433,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         vol.Required("volume"): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=1.0)),
     })
 
+    set_stream_mute_schema = vol.Schema({
+        vol.Required("stream_index"): vol.All(int, vol.Range(min=0)),
+        vol.Required("mute"): cv.boolean,
+    })
+
     add_radio_stream_schema = vol.Schema({
         vol.Required("name"): cv.string,
         vol.Required("url"): cv.string,
@@ -480,6 +502,12 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         SERVICE_SET_STREAM_VOLUME,
         handle_set_stream_volume,
         schema=set_stream_volume_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_STREAM_MUTE,
+        handle_set_stream_mute,
+        schema=set_stream_mute_schema,
     )
     hass.services.async_register(
         DOMAIN,
@@ -582,6 +610,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_DELETE_COMBINED_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_MOVE_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_VOLUME)
+            hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_MUTE)
             hass.services.async_remove(DOMAIN, SERVICE_ADD_RADIO_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_DELETE_RADIO_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_PLAY_RADIO_STREAM)

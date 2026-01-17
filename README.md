@@ -50,6 +50,7 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.delete_combined_sink` - Remove multi-room setups
 - `linux_audio_server.move_stream` - Route specific apps to different outputs
 - `linux_audio_server.set_stream_volume` - Control volume per application
+- `linux_audio_server.set_stream_mute` - Mute or unmute specific application stream
 - `linux_audio_server.add_radio_stream` - Add new internet radio station
 - `linux_audio_server.delete_radio_stream` - Remove radio station
 - `linux_audio_server.play_radio_stream` - Play saved radio station
@@ -443,6 +444,37 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.5.3 (2026-01-17)
+
+**New Feature:**
+- ✨ **Stream mute/unmute control** - New service to mute/unmute individual playback streams
+- Added `linux_audio_server.set_stream_mute` service
+
+**Implementation:**
+- Added `set_stream_mute` service for per-stream audio muting
+- Mute/unmute specific applications (Spotify, AirPlay, radio, etc.) independently
+- Works alongside existing `set_stream_volume` for full per-stream control
+
+**Usage:**
+```yaml
+# Mute a specific stream (e.g., Spotify)
+service: linux_audio_server.set_stream_mute
+data:
+  stream_index: 42  # From active streams sensor
+  mute: true
+
+# Unmute the stream
+service: linux_audio_server.set_stream_mute
+data:
+  stream_index: 42
+  mute: false
+```
+
+**Benefits:**
+- Full per-application audio control (volume + mute)
+- Mute background music without affecting other streams
+- Perfect for automations (auto-mute during calls, etc.)
 
 ### v0.5.2 (2026-01-17)
 

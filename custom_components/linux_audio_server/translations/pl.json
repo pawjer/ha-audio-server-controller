@@ -89,6 +89,20 @@
         }
       }
     },
+    "set_stream_mute": {
+      "name": "Wycisz strumień",
+      "description": "Wycisz lub wyłącz wyciszenie konkretnego strumienia audio.",
+      "fields": {
+        "stream_index": {
+          "name": "Indeks strumienia",
+          "description": "Indeks strumienia (z sensora aktywnych strumieni)."
+        },
+        "mute": {
+          "name": "Wycisz",
+          "description": "Prawda aby wyciszyć, fałsz aby wyłączyć wyciszenie."
+        }
+      }
+    },
     "add_radio_stream": {
       "name": "Dodaj stację radiową",
       "description": "Dodaj nową stację radiową internetową do listy.",
