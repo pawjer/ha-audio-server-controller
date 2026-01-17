@@ -129,8 +129,25 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     @property
     def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self._sink_data is not None
+        """Return if entity is available.
+
+        For Bluetooth devices: Always available if paired (so power button works when disconnected)
+        For other devices: Available only when sink exists
+        """
+        if not self.coordinator.last_update_success:
+            return False
+
+        # For Bluetooth devices, check if device is paired
+        if self._is_bluetooth and self._bluetooth_address:
+            # Check if this Bluetooth device exists in device tracker data
+            bluetooth_devices = self.coordinator.data.get("bluetooth_devices", [])
+            for device in bluetooth_devices:
+                if device.get("address") == self._bluetooth_address:
+                    # Device is paired - keep entity available even if disconnected
+                    return device.get("paired", False)
+
+        # For non-Bluetooth devices, only available when sink exists
+        return self._sink_data is not None
 
     @property
     def _sink_data(self) -> dict[str, Any] | None:

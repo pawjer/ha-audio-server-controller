@@ -443,6 +443,15 @@ automation:
 
 ## Changelog
 
+### v0.5.1 (2026-01-17)
+
+**Critical Fix:**
+- 🐛 **Fixed: Bluetooth entities stay available when disconnected** - Power button now works when speaker is off!
+- Previously: Speaker disconnects → entity becomes unavailable → can't reconnect from UI
+- Now: Bluetooth entities remain available (show as "off") → power button always clickable
+- Works by checking if Bluetooth device is paired (from device tracker data)
+- Non-Bluetooth sinks behavior unchanged
+
 ### v0.5.0 (2026-01-17)
 
 **Major UX Improvement:**
