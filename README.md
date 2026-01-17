@@ -19,6 +19,7 @@ Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-serve
 Each audio sink appears as a media player entity with:
 - **Cast/Play media to sink** - Appears as audio output target in HA's media screen
 - **Browse media** - Browse and play radio stations directly from media player
+- **Turn on/off Bluetooth speakers** - Power button connects/disconnects Bluetooth devices
 - **URL playback** - Play internet radio, Spotify URIs, local files, any Mopidy-supported URI
 - **Playback controls** (play, pause, stop, next, previous)
 - **Now playing info** (track name, artist, album, position)
@@ -282,6 +283,53 @@ data:
   url: "http://stream.example.com/radio.mp3"
 ```
 
+### Turn On/Off Bluetooth Speakers
+
+Bluetooth speaker media players have a power button that connects/disconnects the device:
+
+**From UI:**
+- Click the power button on the media player card to connect
+- Click again to disconnect
+- Use the switch entity or source selector to set as default output
+
+**From Automations:**
+```yaml
+# Turn on (connect only)
+service: media_player.turn_on
+target:
+  entity_id: media_player.creative_muvo_1c
+
+# Turn off (disconnect)
+service: media_player.turn_off
+target:
+  entity_id: media_player.creative_muvo_1c
+
+# Connect and set as default output
+service: media_player.turn_on
+target:
+  entity_id: media_player.creative_muvo_1c
+- service: switch.turn_on
+  target:
+    entity_id: switch.creative_muvo_1c_creative_muvo_1c_default
+```
+
+**Example - Auto-connect speaker and set as default:**
+```yaml
+automation:
+  - alias: "Connect Bluetooth Speaker at 7am"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: media_player.turn_on
+        target:
+          entity_id: media_player.creative_muvo_1c
+      - delay: 2  # Wait for connection
+      - service: switch.turn_on
+        target:
+          entity_id: switch.creative_muvo_1c_creative_muvo_1c_default
+```
+
 ### Manage Bluetooth Devices
 
 Scan for nearby Bluetooth devices:
@@ -394,6 +442,38 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.5.0 (2026-01-17)
+
+**Major UX Improvement:**
+- ✨ **Turn On/Off Bluetooth Speakers** - Media players now have power button to connect/disconnect
+- 🔌 Click power button to connect Bluetooth speaker
+- 🔴 Click again to disconnect
+- 🤖 Perfect for automations - auto-connect speakers at specific times
+- 🎯 Use switch entity or source selector to set as default output
+
+**Implementation:**
+- Automatically detects Bluetooth sinks (starts with `bluez_output`)
+- Extracts Bluetooth MAC address from sink name
+- Adds `TURN_ON` and `TURN_OFF` features dynamically for Bluetooth devices only
+- Turn on → calls `connect_bluetooth()` (does NOT set as default)
+- Turn off → calls `disconnect_bluetooth()`
+
+**Usage:**
+```yaml
+# Connect only
+service: media_player.turn_on
+target:
+  entity_id: media_player.creative_muvo_1c
+
+# Connect and set as default (two-step)
+service: media_player.turn_on
+target:
+  entity_id: media_player.creative_muvo_1c
+- service: switch.turn_on
+  target:
+    entity_id: switch.creative_muvo_1c_creative_muvo_1c_default
+```
 
 ### v0.4.2 (2026-01-17)
 

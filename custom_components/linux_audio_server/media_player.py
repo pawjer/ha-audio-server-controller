@@ -60,18 +60,6 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     _attr_has_entity_name = True
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
-    _attr_supported_features = (
-        MediaPlayerEntityFeature.VOLUME_SET
-        | MediaPlayerEntityFeature.VOLUME_MUTE
-        | MediaPlayerEntityFeature.SELECT_SOURCE
-        | MediaPlayerEntityFeature.PLAY
-        | MediaPlayerEntityFeature.PAUSE
-        | MediaPlayerEntityFeature.STOP
-        | MediaPlayerEntityFeature.NEXT_TRACK
-        | MediaPlayerEntityFeature.PREVIOUS_TRACK
-        | MediaPlayerEntityFeature.PLAY_MEDIA
-        | MediaPlayerEntityFeature.BROWSE_MEDIA
-    )
 
     def __init__(
         self,
@@ -85,6 +73,47 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         self._sink_name = sink["name"]
         self._attr_unique_id = f"{entry.entry_id}_{sink['name']}"
         self._attr_name = sink["description"]
+
+        # Check if this is a Bluetooth sink
+        self._is_bluetooth = self._sink_name.startswith("bluez_output.")
+        self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
+
+    def _extract_bluetooth_address(self) -> str | None:
+        """Extract Bluetooth MAC address from sink name.
+
+        Converts: bluez_output.00_02_3C_71_8B_55.1 -> 00:02:3C:71:8B:55
+        """
+        try:
+            # Format: bluez_output.XX_XX_XX_XX_XX_XX.Y
+            parts = self._sink_name.split(".")
+            if len(parts) >= 2:
+                # Replace underscores with colons
+                return parts[1].replace("_", ":")
+        except Exception as err:
+            _LOGGER.warning("Failed to extract Bluetooth address from %s: %s", self._sink_name, err)
+        return None
+
+    @property
+    def supported_features(self) -> MediaPlayerEntityFeature:
+        """Return supported features."""
+        features = (
+            MediaPlayerEntityFeature.VOLUME_SET
+            | MediaPlayerEntityFeature.VOLUME_MUTE
+            | MediaPlayerEntityFeature.SELECT_SOURCE
+            | MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.PLAY_MEDIA
+            | MediaPlayerEntityFeature.BROWSE_MEDIA
+        )
+
+        # Add turn on/off for Bluetooth devices
+        if self._is_bluetooth:
+            features |= MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.TURN_OFF
+
+        return features
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -340,3 +369,33 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
         # If a specific ID is requested, we don't have subcategories
         return None
+
+    async def async_turn_on(self) -> None:
+        """Turn on the media player (connect Bluetooth device)."""
+        if not self._is_bluetooth or not self._bluetooth_address:
+            _LOGGER.warning("Turn on is only supported for Bluetooth devices")
+            return
+
+        _LOGGER.info("Turning on Bluetooth device: %s (%s)", self._attr_name, self._bluetooth_address)
+        try:
+            # Just connect - use switch/source selector to set as default
+            await self.coordinator.client.connect_bluetooth(self._bluetooth_address)
+            await self.coordinator.async_request_refresh()
+        except Exception as err:
+            _LOGGER.error("Failed to turn on %s: %s", self._attr_name, err)
+            raise
+
+    async def async_turn_off(self) -> None:
+        """Turn off the media player (disconnect Bluetooth device)."""
+        if not self._is_bluetooth or not self._bluetooth_address:
+            _LOGGER.warning("Turn off is only supported for Bluetooth devices")
+            return
+
+        _LOGGER.info("Turning off Bluetooth device: %s (%s)", self._attr_name, self._bluetooth_address)
+        try:
+            # Disconnect Bluetooth device
+            await self.coordinator.client.disconnect_bluetooth(self._bluetooth_address)
+            await self.coordinator.async_request_refresh()
+        except Exception as err:
+            _LOGGER.error("Failed to turn off %s: %s", self._attr_name, err)
+            raise
