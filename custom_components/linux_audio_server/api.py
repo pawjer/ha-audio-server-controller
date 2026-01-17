@@ -240,6 +240,11 @@ class LinuxAudioServerApiClient:
         """Connect to Bluetooth device and set as default output."""
         return await self._request("POST", "/api/bluetooth/connect-and-set-default", {"address": address})
 
+    # TTS endpoints
+    async def speak_tts(self, message: str, language: str = "en") -> dict[str, Any]:
+        """Speak text using text-to-speech."""
+        return await self._request("POST", "/api/tts/speak", {"message": message, "language": language})
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""

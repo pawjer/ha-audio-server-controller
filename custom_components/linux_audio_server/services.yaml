@@ -202,3 +202,41 @@ bluetooth_connect_and_set_default:
       example: "F4:9D:8A:5D:E7:28"
       selector:
         text:
+
+tts_speak:
+  name: Speak Text
+  description: Convert text to speech and play it on the audio server
+  fields:
+    message:
+      name: Message
+      description: Text to convert to speech
+      required: true
+      example: "Dinner is ready"
+      selector:
+        text:
+          multiline: true
+    language:
+      name: Language
+      description: Language code for speech synthesis
+      required: false
+      default: "en"
+      example: "en"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Spanish"
+              value: "es"
+            - label: "French"
+              value: "fr"
+            - label: "German"
+              value: "de"
+            - label: "Italian"
+              value: "it"
+            - label: "Polish"
+              value: "pl"
+            - label: "Japanese"
+              value: "ja"
+            - label: "Chinese (Simplified)"
+              value: "zh-CN"

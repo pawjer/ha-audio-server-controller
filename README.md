@@ -54,28 +54,23 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.bluetooth_connect` - Connect to Bluetooth device
 - `linux_audio_server.bluetooth_disconnect` - Disconnect from Bluetooth device
 - `linux_audio_server.bluetooth_connect_and_set_default` - Connect and set as default output
+- `linux_audio_server.tts_speak` - Convert text to speech and play
 
 ### Text-to-Speech Support
 
-The Linux Audio Server includes a built-in TTS endpoint using Google Text-to-Speech. You can play TTS announcements using the `play_radio_url` service with generated TTS URLs, or by calling the server's TTS API directly:
+The integration provides native text-to-speech support using Google Text-to-Speech:
 
 ```yaml
-# Example: Play TTS announcement
-service: rest_command.audio_tts
+# Example: Play TTS announcement using the native service
+service: linux_audio_server.tts_speak
 data:
   message: "Dinner is ready"
-  language: "en"
+  language: "en"  # Optional, defaults to "en"
 ```
 
-Add to your `configuration.yaml`:
-```yaml
-rest_command:
-  audio_tts:
-    url: http://<server-ip>:6681/api/tts/speak
-    method: POST
-    content_type: 'application/json'
-    payload: '{"message": "{{ message }}", "language": "{{ language | default(\"en\") }}"}'
-```
+Supported languages include: `en`, `es`, `fr`, `de`, `it`, `pl`, `ja`, `zh-CN`, and many more.
+
+**Note:** Ensure the Linux Audio Server has write permissions to `/tmp/tts/` for TTS file generation.
 
 ## Installation
 
@@ -258,18 +253,14 @@ data:
 
 ### Play Text-to-Speech Announcements
 
-After configuring the `rest_command` (see Text-to-Speech Support section above):
+Use the native TTS service:
 
 ```yaml
-service: rest_command.audio_tts
+service: linux_audio_server.tts_speak
 data:
   message: "The front door is open"
   language: "en"
 ```
-
-Supported languages include: `en`, `es`, `fr`, `de`, `it`, `pl`, `ja`, `zh-CN`, and many more.
-
-**Note:** Ensure the Linux Audio Server has write permissions to `/tmp/tts/` for TTS file generation.
 
 ## Example Automations
 
@@ -336,6 +327,19 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.3.1 (2026-01-17)
+
+**New Features:**
+- ✨ Added native text-to-speech service (`linux_audio_server.tts_speak`)
+- ✨ Integrated Google Text-to-Speech with multi-language support
+
+**Technical Changes:**
+- Added `speak_tts()` API method to client
+- Added `tts_speak` service with message and language parameters
+- Added service description in services.yaml with language selector
+- Added Polish translations for TTS service
+- Updated README with native TTS service documentation
 
 ### v0.3.0 (2026-01-16)
 

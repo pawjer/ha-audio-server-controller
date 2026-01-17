@@ -172,6 +172,20 @@
           "description": "Adres MAC Bluetooth."
         }
       }
+    },
+    "tts_speak": {
+      "name": "Wypowiedz tekst",
+      "description": "Konwertuj tekst na mowę i odtwórz na serwerze audio.",
+      "fields": {
+        "message": {
+          "name": "Wiadomość",
+          "description": "Tekst do konwersji na mowę."
+        },
+        "language": {
+          "name": "Język",
+          "description": "Kod języka dla syntezy mowy."
+        }
+      }
     }
   }
 }

@@ -31,6 +31,7 @@ SERVICE_BLUETOOTH_PAIR = "bluetooth_pair"
 SERVICE_BLUETOOTH_CONNECT = "bluetooth_connect"
 SERVICE_BLUETOOTH_DISCONNECT = "bluetooth_disconnect"
 SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT = "bluetooth_connect_and_set_default"
+SERVICE_TTS_SPEAK = "tts_speak"
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -285,6 +286,21 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to connect and set default Bluetooth device: %s", err)
             raise HomeAssistantError(f"Failed to connect and set default Bluetooth device: {err}") from err
 
+    async def handle_tts_speak(call: ServiceCall) -> None:
+        """Handle text-to-speech playback."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            message = call.data["message"]
+            language = call.data.get("language", "en")
+            await coordinator.client.speak_tts(message, language)
+            _LOGGER.info("Playing TTS message: %s (language: %s)", message, language)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to play TTS message: %s", err)
+            raise HomeAssistantError(f"Failed to play TTS message: {err}") from err
+
     # Service schemas
     create_combined_sink_schema = vol.Schema({
         vol.Required("name"): cv.string,
@@ -330,6 +346,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
     bluetooth_address_schema = vol.Schema({
         vol.Required("address"): cv.string,
+    })
+
+    tts_speak_schema = vol.Schema({
+        vol.Required("message"): cv.string,
+        vol.Optional("language", default="en"): cv.string,
     })
 
     # Register services with schemas
@@ -411,6 +432,12 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         handle_bluetooth_connect_and_set_default,
         schema=bluetooth_address_schema,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_TTS_SPEAK,
+        handle_tts_speak,
+        schema=tts_speak_schema,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -433,5 +460,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_CONNECT)
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_DISCONNECT)
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT)
+            hass.services.async_remove(DOMAIN, SERVICE_TTS_SPEAK)
 
     return unload_ok
