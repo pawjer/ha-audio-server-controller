@@ -64,6 +64,7 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.keep_alive_set_interval` - Set keep-alive interval (30-600 seconds)
 - `linux_audio_server.keep_alive_enable_sink` - Enable keep-alive for specific sink
 - `linux_audio_server.keep_alive_disable_sink` - Disable keep-alive for specific sink
+- `linux_audio_server.cleanup_stale_bluetooth` - Remove entities for unpaired Bluetooth devices
 
 ### Bluetooth Keep-Alive Support
 
@@ -442,6 +443,30 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.5.2 (2026-01-17)
+
+**New Feature:**
+- ✨ **Automatic cleanup of stale Bluetooth speaker entities** - Entities for unpaired devices are automatically removed
+- ✨ Added `cleanup_stale_bluetooth` service to manually trigger cleanup
+
+**Implementation:**
+- Entities are automatically removed when both conditions are met:
+  1. Bluetooth device is no longer paired
+  2. Audio sink no longer exists
+- Cleanup runs automatically on each coordinator update
+- Manual cleanup available via service call
+
+**Usage:**
+```yaml
+# Manually trigger cleanup
+service: linux_audio_server.cleanup_stale_bluetooth
+```
+
+**Benefits:**
+- No more orphaned entities cluttering your device list
+- Entities disappear automatically when Bluetooth devices are unpaired
+- Clean entity registry after removing old speakers
 
 ### v0.5.1 (2026-01-17)
 

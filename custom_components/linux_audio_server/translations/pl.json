@@ -224,6 +224,10 @@
           "description": "Nazwa wyjścia audio."
         }
       }
+    },
+    "cleanup_stale_bluetooth": {
+      "name": "Wyczyść nieaktywne głośniki Bluetooth",
+      "description": "Usuń encje odtwarzaczy dla urządzeń Bluetooth, które nie są już sparowane."
     }
   }
 }

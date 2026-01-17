@@ -15,6 +15,7 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -31,6 +32,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Linux Audio Server media player entities."""
     coordinator: LinuxAudioServerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    entity_reg = er.async_get(hass)
 
     # Create media player entities for each sink
     entities = []
@@ -39,18 +41,69 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
-    # Set up a listener to add new sinks dynamically
+    # Set up a listener to add new sinks dynamically and remove stale entities
     async def async_update_entities() -> None:
         """Update entities when coordinator data changes."""
         current_entities = {entity.unique_id for entity in entities}
         new_sinks = coordinator.data.get("sinks", [])
 
+        # Get current Bluetooth devices
+        bluetooth_devices = coordinator.data.get("bluetooth_devices", [])
+        paired_addresses = {dev.get("address") for dev in bluetooth_devices if dev.get("paired", False)}
+
+        # Add new sinks
         for sink in new_sinks:
             unique_id = f"{entry.entry_id}_{sink['name']}"
             if unique_id not in current_entities:
                 new_entity = AudioSinkMediaPlayer(coordinator, entry, sink)
                 entities.append(new_entity)
                 async_add_entities([new_entity])
+
+        # Remove stale Bluetooth speaker entities
+        # An entity is stale if:
+        # 1. It's a Bluetooth device (sink name starts with bluez_output.)
+        # 2. The Bluetooth device is no longer paired
+        # 3. The sink no longer exists
+        current_sink_names = {sink["name"] for sink in new_sinks}
+
+        entities_to_remove = []
+        for entity in entities:
+            # Check if this is a Bluetooth entity
+            if not entity._sink_name.startswith("bluez_output."):
+                continue
+
+            # Extract Bluetooth address
+            bt_address = entity._bluetooth_address
+            if not bt_address:
+                continue
+
+            # Check if device is still paired
+            is_paired = bt_address in paired_addresses
+            sink_exists = entity._sink_name in current_sink_names
+
+            # Remove entity if device is no longer paired AND sink doesn't exist
+            if not is_paired and not sink_exists:
+                _LOGGER.info(
+                    "Removing stale Bluetooth speaker entity: %s (address: %s, paired: %s, sink exists: %s)",
+                    entity._attr_name,
+                    bt_address,
+                    is_paired,
+                    sink_exists,
+                )
+                entities_to_remove.append(entity)
+
+                # Remove from entity registry
+                entity_id = entity_reg.async_get_entity_id(
+                    "media_player",
+                    DOMAIN,
+                    entity.unique_id,
+                )
+                if entity_id:
+                    entity_reg.async_remove(entity_id)
+
+        # Remove from our entities list
+        for entity in entities_to_remove:
+            entities.remove(entity)
 
     coordinator.async_add_listener(async_update_entities)
 

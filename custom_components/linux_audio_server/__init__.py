@@ -37,6 +37,7 @@ SERVICE_KEEP_ALIVE_STOP = "keep_alive_stop"
 SERVICE_KEEP_ALIVE_SET_INTERVAL = "keep_alive_set_interval"
 SERVICE_KEEP_ALIVE_ENABLE_SINK = "keep_alive_enable_sink"
 SERVICE_KEEP_ALIVE_DISABLE_SINK = "keep_alive_disable_sink"
+SERVICE_CLEANUP_STALE_BLUETOOTH = "cleanup_stale_bluetooth"
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -379,6 +380,16 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to disable keep-alive for sink: %s", err)
             raise HomeAssistantError(f"Failed to disable keep-alive for sink: {err}") from err
 
+    async def handle_cleanup_stale_bluetooth(call: ServiceCall) -> None:
+        """Handle cleanup of stale Bluetooth speaker entities."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        # Trigger a coordinator refresh which will run the cleanup logic
+        await coordinator.async_request_refresh()
+        _LOGGER.info("Triggered cleanup of stale Bluetooth speaker entities")
+
     # Service schemas
     create_combined_sink_schema = vol.Schema({
         vol.Required("name"): cv.string,
@@ -552,6 +563,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         handle_keep_alive_disable_sink,
         schema=keep_alive_sink_schema,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEANUP_STALE_BLUETOOTH,
+        handle_cleanup_stale_bluetooth,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -580,5 +596,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_SET_INTERVAL)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_ENABLE_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_DISABLE_SINK)
+            hass.services.async_remove(DOMAIN, SERVICE_CLEANUP_STALE_BLUETOOTH)
 
     return unload_ok

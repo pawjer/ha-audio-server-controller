@@ -287,3 +287,7 @@ keep_alive_disable_sink:
       example: "bluez_output.F4_9D_8A_5D_E7_28.1"
       selector:
         text:
+
+cleanup_stale_bluetooth:
+  name: Cleanup Stale Bluetooth Speakers
+  description: Remove media player entities for Bluetooth devices that are no longer paired
