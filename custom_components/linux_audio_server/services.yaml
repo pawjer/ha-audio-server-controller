@@ -152,6 +152,25 @@ delete_radio_stream:
       selector:
         text:
 
+update_radio_stream:
+  name: Update Radio Stream
+  description: Update the URL of an existing radio station
+  fields:
+    name:
+      name: Name
+      description: Name of the radio station to update
+      required: true
+      example: "Jazz FM"
+      selector:
+        text:
+    url:
+      name: URL
+      description: New stream URL
+      required: true
+      example: "http://jazz-wr11.ice.infomaniak.ch/jazz-wr11-128.mp3"
+      selector:
+        text:
+
 play_radio_stream:
   name: Play Radio Stream
   description: Play a saved radio station

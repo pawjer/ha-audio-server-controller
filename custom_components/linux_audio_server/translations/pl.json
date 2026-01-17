@@ -127,6 +127,20 @@
         }
       }
     },
+    "update_radio_stream": {
+      "name": "Zaktualizuj stację radiową",
+      "description": "Zaktualizuj adres URL istniejącej stacji radiowej.",
+      "fields": {
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa stacji radiowej do zaktualizowania."
+        },
+        "url": {
+          "name": "URL",
+          "description": "Nowy adres strumienia."
+        }
+      }
+    },
     "play_radio_stream": {
       "name": "Odtwórz stację radiową",
       "description": "Odtwórz zapisaną stację radiową.",

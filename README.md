@@ -53,6 +53,7 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.set_stream_mute` - Mute or unmute specific application stream
 - `linux_audio_server.add_radio_stream` - Add new internet radio station
 - `linux_audio_server.delete_radio_stream` - Remove radio station
+- `linux_audio_server.update_radio_stream` - Update radio station URL
 - `linux_audio_server.play_radio_stream` - Play saved radio station
 - `linux_audio_server.play_radio_url` - Play any radio stream by URL
 - `linux_audio_server.bluetooth_pair` - Pair with Bluetooth device
@@ -444,6 +445,41 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.5.4 (2026-01-17)
+
+**Bug Fixes:**
+- 🐛 **Fixed stereo pair deletion** - Now correctly deletes stereo pairs (was only deleting combined sinks)
+- The `delete_combined_sink` service now tries both endpoints automatically
+
+**New Feature:**
+- ✨ **Update radio stream URLs** - New service to update existing radio station URLs
+- Added `linux_audio_server.update_radio_stream` service
+
+**Implementation:**
+- Fixed `delete_combined_sink` API method to try both `/api/audio/combined-sink` and `/api/audio/stereo-pair` endpoints
+- Added `update_radio_stream` API method using PUT endpoint
+- Added service handler and schema validation
+- Added Polish translations
+
+**Usage:**
+```yaml
+# Update existing radio station URL
+service: linux_audio_server.update_radio_stream
+data:
+  name: "Jazz FM"
+  url: "http://new-stream-url.mp3"
+
+# Delete combined sink or stereo pair (works for both now)
+service: linux_audio_server.delete_combined_sink
+data:
+  sink_name: "my_stereo_pair"
+```
+
+**Benefits:**
+- Stereo pair deletion finally works correctly
+- Update radio URLs without deleting and re-adding
+- Better error messages when deletion fails
 
 ### v0.5.3 (2026-01-17)
 

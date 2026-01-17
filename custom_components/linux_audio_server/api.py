@@ -169,7 +169,17 @@ class LinuxAudioServerApiClient:
     async def delete_combined_sink(self, sink_name: str) -> dict[str, Any]:
         """Delete a combined sink or stereo pair."""
         encoded_name = quote(sink_name, safe="")
-        return await self._request("DELETE", f"/api/audio/combined-sink/{encoded_name}")
+
+        # Try combined-sink endpoint first
+        try:
+            return await self._request("DELETE", f"/api/audio/combined-sink/{encoded_name}")
+        except ApiClientError:
+            # If that fails, try stereo-pair endpoint
+            try:
+                return await self._request("DELETE", f"/api/audio/stereo-pair/{encoded_name}")
+            except ApiClientError as err:
+                # If both fail, raise the error
+                raise ApiClientError(f"Failed to delete '{sink_name}' as combined sink or stereo pair") from err
 
     async def get_bluetooth_devices(self) -> dict[str, Any]:
         """Get all Bluetooth devices."""
@@ -211,6 +221,11 @@ class LinuxAudioServerApiClient:
         """Delete a radio stream."""
         encoded_name = quote(name, safe="")
         return await self._request("DELETE", f"/api/radio/stream/{encoded_name}")
+
+    async def update_radio_stream(self, name: str, url: str) -> dict[str, Any]:
+        """Update a radio stream URL."""
+        encoded_name = quote(name, safe="")
+        return await self._request("PUT", f"/api/radio/stream/{encoded_name}", {"url": url})
 
     async def play_radio_stream(self, name: str) -> dict[str, Any]:
         """Play a predefined radio stream."""

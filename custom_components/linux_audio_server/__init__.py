@@ -26,6 +26,7 @@ SERVICE_SET_STREAM_VOLUME = "set_stream_volume"
 SERVICE_SET_STREAM_MUTE = "set_stream_mute"
 SERVICE_ADD_RADIO_STREAM = "add_radio_stream"
 SERVICE_DELETE_RADIO_STREAM = "delete_radio_stream"
+SERVICE_UPDATE_RADIO_STREAM = "update_radio_stream"
 SERVICE_PLAY_RADIO_STREAM = "play_radio_stream"
 SERVICE_PLAY_RADIO_URL = "play_radio_url"
 SERVICE_BLUETOOTH_PAIR = "bluetooth_pair"
@@ -218,6 +219,22 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         except ApiClientError as err:
             _LOGGER.error("Failed to delete radio stream: %s", err)
             raise HomeAssistantError(f"Failed to delete radio stream: {err}") from err
+
+    async def handle_update_radio_stream(call: ServiceCall) -> None:
+        """Handle updating a radio stream."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            name = call.data["name"]
+            url = call.data["url"]
+            await coordinator.client.update_radio_stream(name, url)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Updated radio stream '%s'", name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to update radio stream: %s", err)
+            raise HomeAssistantError(f"Failed to update radio stream: {err}") from err
 
     async def handle_play_radio_stream(call: ServiceCall) -> None:
         """Handle playing a radio stream."""
@@ -447,6 +464,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         vol.Required("name"): cv.string,
     })
 
+    update_radio_stream_schema = vol.Schema({
+        vol.Required("name"): cv.string,
+        vol.Required("url"): cv.string,
+    })
+
     play_radio_stream_schema = vol.Schema({
         vol.Required("name"): cv.string,
     })
@@ -520,6 +542,12 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         SERVICE_DELETE_RADIO_STREAM,
         handle_delete_radio_stream,
         schema=delete_radio_stream_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_RADIO_STREAM,
+        handle_update_radio_stream,
+        schema=update_radio_stream_schema,
     )
     hass.services.async_register(
         DOMAIN,
@@ -613,6 +641,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_MUTE)
             hass.services.async_remove(DOMAIN, SERVICE_ADD_RADIO_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_DELETE_RADIO_STREAM)
+            hass.services.async_remove(DOMAIN, SERVICE_UPDATE_RADIO_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_PLAY_RADIO_STREAM)
             hass.services.async_remove(DOMAIN, SERVICE_PLAY_RADIO_URL)
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_PAIR)
