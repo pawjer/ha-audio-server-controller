@@ -55,6 +55,28 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.bluetooth_disconnect` - Disconnect from Bluetooth device
 - `linux_audio_server.bluetooth_connect_and_set_default` - Connect and set as default output
 
+### Text-to-Speech Support
+
+The Linux Audio Server includes a built-in TTS endpoint using Google Text-to-Speech. You can play TTS announcements using the `play_radio_url` service with generated TTS URLs, or by calling the server's TTS API directly:
+
+```yaml
+# Example: Play TTS announcement
+service: rest_command.audio_tts
+data:
+  message: "Dinner is ready"
+  language: "en"
+```
+
+Add to your `configuration.yaml`:
+```yaml
+rest_command:
+  audio_tts:
+    url: http://<server-ip>:6681/api/tts/speak
+    method: POST
+    content_type: 'application/json'
+    payload: '{"message": "{{ message }}", "language": "{{ language | default(\"en\") }}"}'
+```
+
 ## Installation
 
 ### HACS (Recommended)
@@ -233,6 +255,21 @@ service: linux_audio_server.bluetooth_connect_and_set_default
 data:
   address: "F4:9D:8A:5D:E7:28"
 ```
+
+### Play Text-to-Speech Announcements
+
+After configuring the `rest_command` (see Text-to-Speech Support section above):
+
+```yaml
+service: rest_command.audio_tts
+data:
+  message: "The front door is open"
+  language: "en"
+```
+
+Supported languages include: `en`, `es`, `fr`, `de`, `it`, `pl`, `ja`, `zh-CN`, and many more.
+
+**Note:** Ensure the Linux Audio Server has write permissions to `/tmp/tts/` for TTS file generation.
 
 ## Example Automations
 
