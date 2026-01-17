@@ -66,6 +66,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.STOP
         | MediaPlayerEntityFeature.NEXT_TRACK
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
+        | MediaPlayerEntityFeature.PLAY_MEDIA
     )
 
     def __init__(
@@ -263,4 +264,39 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     async def async_media_previous_track(self) -> None:
         """Send previous track command."""
         await self.coordinator.client.previous_track()
+        await self.coordinator.async_request_refresh()
+
+    async def async_play_media(self, media_type: str, media_id: str, **kwargs) -> None:
+        """Play media from URL or URI.
+
+        Supports:
+        - Direct URLs (http://, https://) - plays via radio URL endpoint
+        - Spotify URIs (spotify:track:...) - plays via Mopidy
+        - File URIs (file://...) - plays via Mopidy
+        """
+        _LOGGER.info("Playing media: type=%s, id=%s", media_type, media_id)
+
+        # Set this sink as default before playing
+        await self.coordinator.client.set_default_sink(self._sink_name)
+
+        # Handle different media types
+        if media_id.startswith(("http://", "https://")):
+            # Direct URL - use radio URL endpoint
+            _LOGGER.debug("Playing HTTP(S) URL via radio endpoint: %s", media_id)
+            await self.coordinator.client.play_radio_url(media_id)
+        elif media_id.startswith("spotify:"):
+            # Spotify URI - use Mopidy's tracklist.add + playback.play
+            _LOGGER.debug("Playing Spotify URI: %s", media_id)
+            # For now, use play_radio_url which will forward to Mopidy
+            # TODO: Could add dedicated Mopidy tracklist API methods
+            await self.coordinator.client.play_radio_url(media_id)
+        elif media_id.startswith("file://"):
+            # Local file - use Mopidy
+            _LOGGER.debug("Playing local file: %s", media_id)
+            await self.coordinator.client.play_radio_url(media_id)
+        else:
+            # Assume it's a URI and try to play it
+            _LOGGER.debug("Playing URI: %s", media_id)
+            await self.coordinator.client.play_radio_url(media_id)
+
         await self.coordinator.async_request_refresh()

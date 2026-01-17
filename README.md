@@ -17,6 +17,8 @@ Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-serve
 
 ### Media Player Entities
 Each audio sink appears as a media player entity with:
+- **Cast/Play media to sink** - Appears as audio output target in HA's media screen
+- **URL playback** - Play internet radio, Spotify URIs, local files, any Mopidy-supported URI
 - **Playback controls** (play, pause, stop, next, previous)
 - **Now playing info** (track name, artist, album, position)
 - Volume control (0-100%)
@@ -148,6 +150,38 @@ target:
 data:
   volume_level: 0.5  # 50%
 ```
+
+### Play Media to Audio Sink
+
+Send media to any audio sink - they appear as audio output targets in Home Assistant:
+
+```yaml
+# Play internet radio
+service: media_player.play_media
+target:
+  entity_id: media_player.soundcore_liberty_4_pro
+data:
+  media_content_type: music
+  media_content_id: "http://jazz-wr11.ice.infomaniak.ch/jazz-wr11-128.mp3"
+
+# Play Spotify track (requires Spotify Premium & Mopidy-Spotify)
+service: media_player.play_media
+target:
+  entity_id: media_player.soundcore_liberty_4_pro
+data:
+  media_content_type: music
+  media_content_id: "spotify:track:6rqhFgbbKwnb9MLmUQDhG6"
+
+# Play local file
+service: media_player.play_media
+target:
+  entity_id: media_player.soundcore_liberty_4_pro
+data:
+  media_content_type: music
+  media_content_id: "file:///path/to/audio.mp3"
+```
+
+**Note:** The sink will automatically be set as the default audio output before playing.
 
 ### Switch Default Output
 
@@ -359,6 +393,29 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.4.1 (2026-01-17)
+
+**Major Features:**
+- ✨ **Media players now appear as audio output targets** - Cast/send media from Home Assistant to audio sinks
+- ✨ Added `PLAY_MEDIA` feature to all media player entities
+- ✨ Support for playing URLs, Spotify URIs, local files, and any Mopidy-supported URI
+
+**Usage:**
+```yaml
+service: media_player.play_media
+target:
+  entity_id: media_player.your_speaker
+data:
+  media_content_type: music
+  media_content_id: "http://stream-url.mp3"  # or spotify:track:... or file://...
+```
+
+**Technical Changes:**
+- Added `MediaPlayerEntityFeature.PLAY_MEDIA` to supported features
+- Implemented `async_play_media()` method with URI type detection
+- Automatically sets sink as default before playing media
+- Supports HTTP(S) URLs, Spotify URIs, file URIs, and generic URIs
 
 ### v0.4.0 (2026-01-17)
 
