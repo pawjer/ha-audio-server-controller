@@ -55,6 +55,38 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.bluetooth_disconnect` - Disconnect from Bluetooth device
 - `linux_audio_server.bluetooth_connect_and_set_default` - Connect and set as default output
 - `linux_audio_server.tts_speak` - Convert text to speech and play
+- `linux_audio_server.keep_alive_start` - Start Bluetooth keep-alive to prevent auto-disconnect
+- `linux_audio_server.keep_alive_stop` - Stop Bluetooth keep-alive
+- `linux_audio_server.keep_alive_set_interval` - Set keep-alive interval (30-600 seconds)
+- `linux_audio_server.keep_alive_enable_sink` - Enable keep-alive for specific sink
+- `linux_audio_server.keep_alive_disable_sink` - Disable keep-alive for specific sink
+
+### Bluetooth Keep-Alive Support
+
+The integration includes Bluetooth keep-alive functionality to prevent Bluetooth speakers from auto-disconnecting when idle. The server periodically sends silent audio signals to configured sinks.
+
+**Sensor Entities:**
+- `sensor.linux_audio_server_bluetooth_keep_alive` - Shows keep-alive status (on/off) with interval and enabled sinks as attributes
+
+**Usage:**
+
+```yaml
+# Start keep-alive (default 240s interval)
+service: linux_audio_server.keep_alive_start
+
+# Set custom interval (in seconds, 30-600)
+service: linux_audio_server.keep_alive_set_interval
+data:
+  interval: 120
+
+# Enable keep-alive for a specific Bluetooth sink
+service: linux_audio_server.keep_alive_enable_sink
+data:
+  sink_name: "bluez_output.F4_9D_8A_5D_E7_28.1"
+
+# Stop keep-alive
+service: linux_audio_server.keep_alive_stop
+```
 
 ### Text-to-Speech Support
 
@@ -327,6 +359,22 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.4.0 (2026-01-17)
+
+**Major Features:**
+- ✨ Added Bluetooth keep-alive functionality to prevent auto-disconnect of idle speakers
+- ✨ Added keep-alive status sensor with interval and enabled sinks attributes
+- ✨ Added 5 new services for keep-alive management (start, stop, set interval, enable/disable per sink)
+
+**Technical Changes:**
+- Added keep-alive API methods to client (start, stop, status, set_interval, enable/disable sink)
+- Enhanced coordinator to fetch keep-alive status
+- Added `BluetoothKeepAliveSensor` showing on/off status with attributes
+- Added comprehensive service descriptions for keep-alive in services.yaml
+- Added Polish translations for keep-alive sensor and services
+- Keep-alive interval configurable from 30 to 600 seconds
+- Keep-alive can be enabled/disabled per sink or globally
 
 ### v0.3.1 (2026-01-17)
 

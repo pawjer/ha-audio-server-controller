@@ -186,6 +186,44 @@
           "description": "Kod języka dla syntezy mowy."
         }
       }
+    },
+    "keep_alive_start": {
+      "name": "Uruchom Bluetooth Keep-Alive",
+      "description": "Uruchom Bluetooth keep-alive, aby zapobiec auto-rozłączeniu bezczynnych głośników."
+    },
+    "keep_alive_stop": {
+      "name": "Zatrzymaj Bluetooth Keep-Alive",
+      "description": "Zatrzymaj Bluetooth keep-alive."
+    },
+    "keep_alive_set_interval": {
+      "name": "Ustaw interwał Keep-Alive",
+      "description": "Ustaw interwał dla sygnałów Bluetooth keep-alive (30-600 sekund).",
+      "fields": {
+        "interval": {
+          "name": "Interwał",
+          "description": "Interwał w sekundach między sygnałami keep-alive."
+        }
+      }
+    },
+    "keep_alive_enable_sink": {
+      "name": "Włącz Keep-Alive dla wyjścia",
+      "description": "Włącz Bluetooth keep-alive dla określonego wyjścia audio.",
+      "fields": {
+        "sink_name": {
+          "name": "Nazwa wyjścia",
+          "description": "Nazwa wyjścia audio."
+        }
+      }
+    },
+    "keep_alive_disable_sink": {
+      "name": "Wyłącz Keep-Alive dla wyjścia",
+      "description": "Wyłącz Bluetooth keep-alive dla określonego wyjścia audio.",
+      "fields": {
+        "sink_name": {
+          "name": "Nazwa wyjścia",
+          "description": "Nazwa wyjścia audio."
+        }
+      }
     }
   }
 }

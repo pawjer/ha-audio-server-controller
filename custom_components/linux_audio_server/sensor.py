@@ -24,8 +24,11 @@ async def async_setup_entry(
     """Set up Linux Audio Server sensor entities."""
     coordinator: LinuxAudioServerCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Create a sensor for active streams count
-    entities = [ActiveStreamsSensor(coordinator, entry)]
+    # Create sensors
+    entities = [
+        ActiveStreamsSensor(coordinator, entry),
+        BluetoothKeepAliveSensor(coordinator, entry),
+    ]
 
     async_add_entities(entities)
 
@@ -82,4 +85,52 @@ class ActiveStreamsSensor(CoordinatorEntity, SensorEntity):
                 }
                 for stream in streams
             ]
+        }
+
+
+class BluetoothKeepAliveSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing Bluetooth keep-alive status."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:bluetooth-connect"
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_bluetooth_keep_alive"
+        self._attr_name = "Bluetooth Keep-Alive"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "Linux Audio Server",
+            "manufacturer": "Linux Audio Server",
+            "model": "Audio Hub",
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
+    def native_value(self) -> str:
+        """Return the keep-alive status."""
+        keep_alive = self.coordinator.data.get("keep_alive", {})
+        return "on" if keep_alive.get("enabled", False) else "off"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional state attributes."""
+        keep_alive = self.coordinator.data.get("keep_alive", {})
+        return {
+            "interval": keep_alive.get("interval", 240),
+            "enabled_sinks": keep_alive.get("enabled_sinks", []),
         }

@@ -240,3 +240,50 @@ tts_speak:
               value: "ja"
             - label: "Chinese (Simplified)"
               value: "zh-CN"
+
+keep_alive_start:
+  name: Start Bluetooth Keep-Alive
+  description: Start Bluetooth keep-alive to prevent auto-disconnect of idle speakers
+
+keep_alive_stop:
+  name: Stop Bluetooth Keep-Alive
+  description: Stop Bluetooth keep-alive
+
+keep_alive_set_interval:
+  name: Set Keep-Alive Interval
+  description: Set the interval for Bluetooth keep-alive signals (30-600 seconds)
+  fields:
+    interval:
+      name: Interval
+      description: Interval in seconds between keep-alive signals
+      required: true
+      example: 240
+      selector:
+        number:
+          min: 30
+          max: 600
+          unit_of_measurement: "seconds"
+
+keep_alive_enable_sink:
+  name: Enable Keep-Alive for Sink
+  description: Enable Bluetooth keep-alive for a specific audio sink
+  fields:
+    sink_name:
+      name: Sink Name
+      description: Name of the audio sink
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
+
+keep_alive_disable_sink:
+  name: Disable Keep-Alive for Sink
+  description: Disable Bluetooth keep-alive for a specific audio sink
+  fields:
+    sink_name:
+      name: Sink Name
+      description: Name of the audio sink
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:

@@ -245,6 +245,31 @@ class LinuxAudioServerApiClient:
         """Speak text using text-to-speech."""
         return await self._request("POST", "/api/tts/speak", {"message": message, "language": language})
 
+    # Bluetooth Keep-Alive endpoints
+    async def start_keep_alive(self) -> dict[str, Any]:
+        """Start Bluetooth keep-alive to prevent auto-disconnect."""
+        return await self._request("POST", "/api/bluetooth/keep-alive/start")
+
+    async def stop_keep_alive(self) -> dict[str, Any]:
+        """Stop Bluetooth keep-alive."""
+        return await self._request("POST", "/api/bluetooth/keep-alive/stop")
+
+    async def get_keep_alive_status(self) -> dict[str, Any]:
+        """Get keep-alive status."""
+        return await self._request("GET", "/api/bluetooth/keep-alive/status")
+
+    async def set_keep_alive_interval(self, interval: int) -> dict[str, Any]:
+        """Set keep-alive interval in seconds (30-600)."""
+        return await self._request("POST", "/api/bluetooth/keep-alive/interval", {"interval": interval})
+
+    async def enable_keep_alive_for_sink(self, sink_name: str) -> dict[str, Any]:
+        """Enable keep-alive for a specific sink."""
+        return await self._request("POST", "/api/bluetooth/keep-alive/sink", {"sink_name": sink_name})
+
+    async def disable_keep_alive_for_sink(self, sink_name: str) -> dict[str, Any]:
+        """Disable keep-alive for a specific sink."""
+        return await self._request("DELETE", "/api/bluetooth/keep-alive/sink", {"sink_name": sink_name})
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""

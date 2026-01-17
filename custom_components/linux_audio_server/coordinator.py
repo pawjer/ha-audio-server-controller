@@ -58,6 +58,13 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Failed to fetch Bluetooth devices: %s", err)
                 bluetooth_data = {"devices": []}
 
+            keep_alive_data = {}
+            try:
+                keep_alive_data = await self.client.get_keep_alive_status()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch keep-alive status: %s", err)
+                keep_alive_data = {"enabled": False, "interval": 240, "enabled_sinks": []}
+
             return {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
@@ -65,6 +72,7 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "playback": playback_data,
                 "radio_streams": radio_data.get("streams", {}),
                 "bluetooth_devices": bluetooth_data.get("devices", []),
+                "keep_alive": keep_alive_data,
             }
         except ApiClientError as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
