@@ -197,7 +197,28 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             for device in bluetooth_devices:
                 if device.get("address") == self._bluetooth_address:
                     # Device is paired - keep entity available even if disconnected
-                    return device.get("paired", False)
+                    is_paired = device.get("paired", False)
+                    _LOGGER.debug(
+                        "Bluetooth device %s (%s) found: paired=%s, sink_exists=%s",
+                        self._attr_name,
+                        self._bluetooth_address,
+                        is_paired,
+                        self._sink_data is not None,
+                    )
+                    if is_paired:
+                        return True
+                    # If found but not paired, entity should be unavailable
+                    return False
+
+            # If Bluetooth device not found in device list, check if sink exists
+            # This handles the case where the device was just discovered
+            _LOGGER.debug(
+                "Bluetooth device %s (%s) not found in device list, checking sink: %s",
+                self._attr_name,
+                self._bluetooth_address,
+                self._sink_data is not None,
+            )
+            return self._sink_data is not None
 
         # For non-Bluetooth devices, only available when sink exists
         return self._sink_data is not None
