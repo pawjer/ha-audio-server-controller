@@ -284,6 +284,24 @@
     "cleanup_stale_bluetooth": {
       "name": "Wyczyść nieaktywne głośniki Bluetooth",
       "description": "Usuń encje odtwarzaczy dla urządzeń Bluetooth, które nie są już sparowane."
+    },
+    "pause_all": {
+      "name": "Wstrzymaj wszystkie odtwarzacze",
+      "description": "Wstrzymaj wszystkie odtwarzacze Mopidy jednocześnie (przydatne dla konfiguracji wielopokojowych)."
+    },
+    "stop_all": {
+      "name": "Zatrzymaj wszystkie odtwarzacze",
+      "description": "Zatrzymaj wszystkie odtwarzacze Mopidy jednocześnie (przydatne dla konfiguracji wielopokojowych)."
+    },
+    "bluetooth_scan": {
+      "name": "Skanuj urządzenia Bluetooth",
+      "description": "Uruchom skanowanie w poszukiwaniu urządzeń Bluetooth.",
+      "fields": {
+        "duration": {
+          "name": "Czas trwania",
+          "description": "Czas trwania skanowania w sekundach."
+        }
+      }
     }
   }
 }

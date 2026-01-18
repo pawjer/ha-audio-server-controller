@@ -366,3 +366,27 @@ keep_alive_disable_sink:
 cleanup_stale_bluetooth:
   name: Cleanup Stale Bluetooth Speakers
   description: Remove media player entities for Bluetooth devices that are no longer paired
+
+pause_all:
+  name: Pause All Players
+  description: Pause all Mopidy players at once (useful for multi-room setups)
+
+stop_all:
+  name: Stop All Players
+  description: Stop all Mopidy players at once (useful for multi-room setups)
+
+bluetooth_scan:
+  name: Scan for Bluetooth Devices
+  description: Trigger a Bluetooth device discovery scan
+  fields:
+    duration:
+      name: Duration
+      description: Scan duration in seconds
+      required: false
+      default: 10
+      example: 10
+      selector:
+        number:
+          min: 5
+          max: 30
+          unit_of_measurement: "seconds"
