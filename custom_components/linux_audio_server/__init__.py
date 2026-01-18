@@ -43,6 +43,9 @@ SERVICE_KEEP_ALIVE_SET_INTERVAL = "keep_alive_set_interval"
 SERVICE_KEEP_ALIVE_ENABLE_SINK = "keep_alive_enable_sink"
 SERVICE_KEEP_ALIVE_DISABLE_SINK = "keep_alive_disable_sink"
 SERVICE_CLEANUP_STALE_BLUETOOTH = "cleanup_stale_bluetooth"
+SERVICE_PAUSE_ALL = "pause_all"
+SERVICE_STOP_ALL = "stop_all"
+SERVICE_BLUETOOTH_SCAN = "bluetooth_scan"
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -473,6 +476,49 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         await coordinator.async_request_refresh()
         _LOGGER.info("Triggered cleanup of stale Bluetooth speaker entities")
 
+    async def handle_pause_all(call: ServiceCall) -> None:
+        """Handle pausing all Mopidy players."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            await coordinator.client.pause_all()
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Paused all Mopidy players")
+        except ApiClientError as err:
+            _LOGGER.error("Failed to pause all players: %s", err)
+            raise HomeAssistantError(f"Failed to pause all players: {err}") from err
+
+    async def handle_stop_all(call: ServiceCall) -> None:
+        """Handle stopping all Mopidy players."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            await coordinator.client.stop_all()
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Stopped all Mopidy players")
+        except ApiClientError as err:
+            _LOGGER.error("Failed to stop all players: %s", err)
+            raise HomeAssistantError(f"Failed to stop all players: {err}") from err
+
+    async def handle_bluetooth_scan(call: ServiceCall) -> None:
+        """Handle Bluetooth device scan."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            duration = call.data.get("duration", 10)
+            await coordinator.client.scan_bluetooth(duration)
+            _LOGGER.info("Started Bluetooth scan for %s seconds", duration)
+            # Note: coordinator refresh will happen automatically after scan duration
+        except ApiClientError as err:
+            _LOGGER.error("Failed to start Bluetooth scan: %s", err)
+            raise HomeAssistantError(f"Failed to start Bluetooth scan: {err}") from err
+
     # Service schemas
     create_combined_sink_schema = vol.Schema({
         vol.Required("name"): cv.string,
@@ -550,6 +596,10 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
     keep_alive_sink_schema = vol.Schema({
         vol.Required("sink_name"): cv.string,
+    })
+
+    bluetooth_scan_schema = vol.Schema({
+        vol.Optional("duration", default=10): vol.All(vol.Coerce(int), vol.Range(min=5, max=30)),
     })
 
     # Register services with schemas
@@ -699,6 +749,22 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         SERVICE_CLEANUP_STALE_BLUETOOTH,
         handle_cleanup_stale_bluetooth,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PAUSE_ALL,
+        handle_pause_all,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_STOP_ALL,
+        handle_stop_all,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_BLUETOOTH_SCAN,
+        handle_bluetooth_scan,
+        schema=bluetooth_scan_schema,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -733,5 +799,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_ENABLE_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_DISABLE_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_CLEANUP_STALE_BLUETOOTH)
+            hass.services.async_remove(DOMAIN, SERVICE_PAUSE_ALL)
+            hass.services.async_remove(DOMAIN, SERVICE_STOP_ALL)
+            hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_SCAN)
 
     return unload_ok

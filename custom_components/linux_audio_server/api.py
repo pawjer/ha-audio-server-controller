@@ -217,6 +217,14 @@ class LinuxAudioServerApiClient:
         """Go back to the previous track."""
         return await self._request("POST", "/api/playback/previous")
 
+    async def pause_all(self) -> dict[str, Any]:
+        """Pause all Mopidy players."""
+        return await self._request("POST", "/api/playback/pause-all")
+
+    async def stop_all(self) -> dict[str, Any]:
+        """Stop all Mopidy players."""
+        return await self._request("POST", "/api/playback/stop-all")
+
     async def get_radio_streams(self) -> dict[str, Any]:
         """Get all radio streams."""
         return await self._request("GET", "/api/radio/streams")

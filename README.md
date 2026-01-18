@@ -70,6 +70,9 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.keep_alive_enable_sink` - Enable keep-alive for specific sink
 - `linux_audio_server.keep_alive_disable_sink` - Disable keep-alive for specific sink
 - `linux_audio_server.cleanup_stale_bluetooth` - Remove entities for unpaired Bluetooth devices
+- `linux_audio_server.pause_all` - Pause all Mopidy players at once
+- `linux_audio_server.stop_all` - Stop all Mopidy players at once
+- `linux_audio_server.bluetooth_scan` - Trigger Bluetooth device discovery scan
 
 ### Bluetooth Keep-Alive Support
 
@@ -448,6 +451,71 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.6.1 (2026-01-18)
+
+**Batch Operations & Bluetooth Discovery** 🎯
+
+**New Services:**
+- ✨ **Pause all players** - Pause all Mopidy players at once (useful for multi-room setups)
+- ✨ **Stop all players** - Stop all Mopidy players at once (useful for multi-room setups)
+- ✨ **Bluetooth device scan** - Trigger Bluetooth device discovery from Home Assistant
+
+**Services:**
+- `linux_audio_server.pause_all` - Pause all Mopidy players simultaneously
+- `linux_audio_server.stop_all` - Stop all Mopidy players simultaneously
+- `linux_audio_server.bluetooth_scan` - Scan for Bluetooth devices (5-30 seconds duration)
+
+**New API Methods:**
+- `POST /api/playback/pause-all` - Batch pause operation
+- `POST /api/playback/stop-all` - Batch stop operation
+- `POST /api/bluetooth/scan` - Trigger device discovery (already existed, now exposed)
+
+**Usage Examples:**
+
+```yaml
+# Pause all music when doorbell rings
+automation:
+  - alias: "Pause all music on doorbell"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.doorbell
+        to: "on"
+    action:
+      - service: linux_audio_server.pause_all
+
+# Stop all music when leaving home
+automation:
+  - alias: "Stop all music when leaving"
+    trigger:
+      - platform: state
+        entity_id: person.john
+        to: "away"
+    action:
+      - service: linux_audio_server.stop_all
+
+# Scan for new Bluetooth speakers
+service: linux_audio_server.bluetooth_scan
+data:
+  duration: 15  # Scan for 15 seconds
+```
+
+**Benefits:**
+- Batch operations save API calls and provide instant multi-room control
+- No need to pause/stop each player individually
+- Bluetooth scan now accessible from HA - find new speakers without SSH
+- Great for whole-house automations (doorbells, security, leaving home)
+
+**API Coverage:**
+- **Total Endpoints:** 51
+- **Implemented:** 48 (94%)
+- **Missing:** 3 (advanced multi-player management - optional features)
+
+**Implementation:**
+- Added 2 new batch playback API methods
+- Exposed existing Bluetooth scan endpoint as service
+- Added comprehensive service definitions
+- Added Polish translations
 
 ### v0.6.0 (2026-01-18)
 
