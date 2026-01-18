@@ -390,3 +390,22 @@ bluetooth_scan:
           min: 5
           max: 30
           unit_of_measurement: "seconds"
+
+assign_player:
+  name: Assign Mopidy Player to Sink
+  description: Assign a specific Mopidy player instance to an audio sink (for multi-room with different content)
+  fields:
+    player_name:
+      name: Player Name
+      description: Name of the Mopidy player (e.g., player1, player2, player3, player4)
+      required: true
+      example: "player1"
+      selector:
+        text:
+    sink_name:
+      name: Sink Name
+      description: Name of the audio sink to assign the player to
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:

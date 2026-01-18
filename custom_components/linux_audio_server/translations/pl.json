@@ -302,6 +302,20 @@
           "description": "Czas trwania skanowania w sekundach."
         }
       }
+    },
+    "assign_player": {
+      "name": "Przypisz odtwarzacz Mopidy do wyjścia",
+      "description": "Przypisz konkretną instancję odtwarzacza Mopidy do wyjścia audio (dla konfiguracji wielopokojowych z różną treścią).",
+      "fields": {
+        "player_name": {
+          "name": "Nazwa odtwarzacza",
+          "description": "Nazwa odtwarzacza Mopidy (np. player1, player2, player3, player4)."
+        },
+        "sink_name": {
+          "name": "Nazwa wyjścia",
+          "description": "Nazwa wyjścia audio, do którego przypisać odtwarzacz."
+        }
+      }
     }
   }
 }

@@ -34,6 +34,8 @@ Each audio sink appears as a media player entity with:
 
 ### Sensor Entities
 - Active streams counter with detailed stream information
+- Bluetooth keep-alive status with interval and enabled sinks
+- **Mopidy players** - Shows active player instances and sink assignments
 
 ### Select Entities
 - **Radio station selector** - Choose and play internet radio from dropdown
@@ -73,6 +75,7 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.pause_all` - Pause all Mopidy players at once
 - `linux_audio_server.stop_all` - Stop all Mopidy players at once
 - `linux_audio_server.bluetooth_scan` - Trigger Bluetooth device discovery scan
+- `linux_audio_server.assign_player` - Assign Mopidy player to specific sink (multi-room with different content)
 
 ### Bluetooth Keep-Alive Support
 
@@ -450,7 +453,136 @@ automation:
 - Reload the integration
 - Check that PulseAudio is running on the server
 
+## Multi-Room Audio Support
+
+This integration provides comprehensive multi-room audio capabilities:
+
+### Same Content Everywhere (Synchronized Playback)
+- **Combined Sinks** - Sync audio to multiple speakers (whole house audio)
+- **Stereo Pairs** - True stereo with left/right channel separation
+- **Follow Me** - Move all streams between rooms instantly
+
+```yaml
+# Create whole-house audio
+service: linux_audio_server.create_combined_sink
+data:
+  name: "whole_house"
+  sinks: ["kitchen_speaker", "living_room", "bedroom"]
+
+# Move music from kitchen to living room
+service: linux_audio_server.move_all_streams
+data:
+  sink_name: "living_room"
+```
+
+### Different Content Per Room (Multi-Player)
+- **Multiple Mopidy Players** - Run up to 4 simultaneous players
+- **Player Assignments** - Route specific players to specific rooms
+- **Independent Control** - Different music in each room
+
+```yaml
+# Assign player1 to kitchen (Jazz)
+service: linux_audio_server.assign_player
+data:
+  player_name: "player1"
+  sink_name: "kitchen_speaker"
+
+# Assign player2 to living room (Rock)
+service: linux_audio_server.assign_player
+data:
+  player_name: "player2"
+  sink_name: "living_room_speaker"
+
+# Check player status and assignments
+sensor.linux_audio_server_mopidy_players
+# Shows: active players, assignments, status
+```
+
+### Stream Control
+- **Per-App Volume** - Control volume for individual applications
+- **Stream Routing** - Move specific apps between speakers
+- **Stream Mute** - Mute/unmute individual streams
+
+```yaml
+# Lower Spotify volume without affecting radio
+service: linux_audio_server.set_stream_volume
+data:
+  stream_index: 42
+  volume: 0.2
+```
+
 ## Changelog
+
+### v0.6.2 (2026-01-18)
+
+**Complete Multi-Room Support - 100% API Coverage!** 🎉
+
+**New Features:**
+- ✨ **Multi-player management** - Support for multiple Mopidy instances with different content per room
+- ✨ **Player assignments** - Assign specific players to specific sinks
+- ✨ **Mopidy players sensor** - Shows active players and current assignments
+
+**New Service:**
+- `linux_audio_server.assign_player` - Assign a Mopidy player to a sink for multi-room with different content
+
+**New Sensor:**
+- `sensor.mopidy_players` - Shows active player count with detailed player status and assignments in attributes
+
+**New API Methods:**
+- `GET /api/players` - Get all Mopidy player instances
+- `GET /api/players/assignments` - Get player-to-sink assignments
+- `POST /api/players/assign` - Assign player to sink
+
+**Usage Examples:**
+
+```yaml
+# Assign player1 to kitchen speaker for Jazz
+service: linux_audio_server.assign_player
+data:
+  player_name: "player1"
+  sink_name: "bluez_output.KITCHEN.1"
+
+# Assign player2 to living room for Rock
+service: linux_audio_server.assign_player
+data:
+  player_name: "player2"
+  sink_name: "bluez_output.LIVING_ROOM.1"
+
+# Check player status
+sensor.linux_audio_server_mopidy_players
+# State: 2 (active players)
+# Attributes:
+#   players:
+#     - name: player1
+#       active: true
+#       status: playing
+#     - name: player2
+#       active: true
+#       status: paused
+#   assignments:
+#     player1: bluez_output.KITCHEN.1
+#     player2: bluez_output.LIVING_ROOM.1
+```
+
+**Benefits:**
+- **Complete multi-room control** - Same content OR different content per room
+- Jazz in kitchen, Rock in living room, Classical in bedroom - all simultaneously!
+- Full visibility into player status and assignments
+- Perfect for complex multi-room audio setups
+
+**API Coverage:**
+- **Total Endpoints:** 51
+- **Implemented:** 51 (100%) ✅
+- **Missing:** 0
+
+**Implementation:**
+- Added 3 new multi-player API methods
+- Added Mopidy players sensor with assignments
+- Added assign_player service
+- Updated coordinator to fetch player data
+- Added comprehensive service definitions
+- Added Polish translations
+- Added multi-room documentation
 
 ### v0.6.1 (2026-01-18)
 

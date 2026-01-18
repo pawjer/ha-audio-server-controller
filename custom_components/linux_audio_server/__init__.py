@@ -46,6 +46,7 @@ SERVICE_CLEANUP_STALE_BLUETOOTH = "cleanup_stale_bluetooth"
 SERVICE_PAUSE_ALL = "pause_all"
 SERVICE_STOP_ALL = "stop_all"
 SERVICE_BLUETOOTH_SCAN = "bluetooth_scan"
+SERVICE_ASSIGN_PLAYER = "assign_player"
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -519,6 +520,22 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to start Bluetooth scan: %s", err)
             raise HomeAssistantError(f"Failed to start Bluetooth scan: {err}") from err
 
+    async def handle_assign_player(call: ServiceCall) -> None:
+        """Handle assigning a Mopidy player to a sink."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            player_name = call.data["player_name"]
+            sink_name = call.data["sink_name"]
+            await coordinator.client.assign_player(player_name, sink_name)
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Assigned player '%s' to sink '%s'", player_name, sink_name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to assign player: %s", err)
+            raise HomeAssistantError(f"Failed to assign player: {err}") from err
+
     # Service schemas
     create_combined_sink_schema = vol.Schema({
         vol.Required("name"): cv.string,
@@ -600,6 +617,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
     bluetooth_scan_schema = vol.Schema({
         vol.Optional("duration", default=10): vol.All(vol.Coerce(int), vol.Range(min=5, max=30)),
+    })
+
+    assign_player_schema = vol.Schema({
+        vol.Required("player_name"): cv.string,
+        vol.Required("sink_name"): cv.string,
     })
 
     # Register services with schemas
@@ -765,6 +787,12 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         handle_bluetooth_scan,
         schema=bluetooth_scan_schema,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ASSIGN_PLAYER,
+        handle_assign_player,
+        schema=assign_player_schema,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -802,5 +830,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_PAUSE_ALL)
             hass.services.async_remove(DOMAIN, SERVICE_STOP_ALL)
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_SCAN)
+            hass.services.async_remove(DOMAIN, SERVICE_ASSIGN_PLAYER)
 
     return unload_ok

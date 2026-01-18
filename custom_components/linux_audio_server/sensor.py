@@ -28,6 +28,7 @@ async def async_setup_entry(
     entities = [
         ActiveStreamsSensor(coordinator, entry),
         BluetoothKeepAliveSensor(coordinator, entry),
+        MopidyPlayersSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -133,4 +134,60 @@ class BluetoothKeepAliveSensor(CoordinatorEntity, SensorEntity):
         return {
             "interval": keep_alive.get("interval", 240),
             "enabled_sinks": keep_alive.get("enabled_sinks", []),
+        }
+
+
+class MopidyPlayersSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing Mopidy player instances and assignments."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:audio-video"
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_mopidy_players"
+        self._attr_name = "Mopidy Players"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "Linux Audio Server",
+            "manufacturer": "Linux Audio Server",
+            "model": "Audio Hub",
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of active players."""
+        players = self.coordinator.data.get("players", [])
+        return len([p for p in players if p.get("active", False)])
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional state attributes."""
+        players = self.coordinator.data.get("players", [])
+        assignments = self.coordinator.data.get("player_assignments", {})
+        return {
+            "players": [
+                {
+                    "name": player.get("name"),
+                    "active": player.get("active", False),
+                    "status": player.get("status"),
+                }
+                for player in players
+            ],
+            "assignments": assignments,
         }

@@ -312,6 +312,19 @@ class LinuxAudioServerApiClient:
         """Disable keep-alive for a specific sink."""
         return await self._request("DELETE", "/api/bluetooth/keep-alive/sink", {"sink_name": sink_name})
 
+    # Multi-Player Management endpoints
+    async def get_players(self) -> dict[str, Any]:
+        """Get status of all Mopidy player instances (player1-4)."""
+        return await self._request("GET", "/api/players")
+
+    async def get_player_assignments(self) -> dict[str, Any]:
+        """Get current player-to-sink assignments."""
+        return await self._request("GET", "/api/players/assignments")
+
+    async def assign_player(self, player_name: str, sink_name: str) -> dict[str, Any]:
+        """Assign a specific player to a sink."""
+        return await self._request("POST", "/api/players/assign", {"player": player_name, "sink": sink_name})
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""

@@ -65,6 +65,17 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Failed to fetch keep-alive status: %s", err)
                 keep_alive_data = {"enabled": False, "interval": 240, "enabled_sinks": []}
 
+            # Fetch multi-player data (optional feature)
+            players_data = {}
+            player_assignments_data = {}
+            try:
+                players_data = await self.client.get_players()
+                player_assignments_data = await self.client.get_player_assignments()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch player data: %s", err)
+                players_data = {"players": []}
+                player_assignments_data = {"assignments": {}}
+
             return {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
@@ -73,6 +84,8 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "radio_streams": radio_data.get("streams", {}),
                 "bluetooth_devices": bluetooth_data.get("devices", []),
                 "keep_alive": keep_alive_data,
+                "players": players_data.get("players", []),
+                "player_assignments": player_assignments_data.get("assignments", {}),
             }
         except ApiClientError as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
