@@ -75,6 +75,16 @@
         }
       }
     },
+    "move_all_streams": {
+      "name": "Przenieś wszystkie strumienie (Podąż za mną)",
+      "description": "Przenieś WSZYSTKIE aktywne strumienie audio na inne wyjście (funkcja podąż za mną).",
+      "fields": {
+        "sink_name": {
+          "name": "Nazwa sinka",
+          "description": "Docelowa nazwa sinka, na który przenieść wszystkie strumienie."
+        }
+      }
+    },
     "set_stream_volume": {
       "name": "Ustaw głośność strumienia",
       "description": "Ustaw głośność dla konkretnego strumienia audio.",
@@ -212,6 +222,24 @@
         "language": {
           "name": "Język",
           "description": "Kod języka dla syntezy mowy."
+        },
+        "sinks": {
+          "name": "Wyjścia",
+          "description": "Nadpisz domyślny głośnik TTS - określ na których wyjściach odtworzyć."
+        }
+      }
+    },
+    "get_tts_settings": {
+      "name": "Pobierz ustawienia TTS",
+      "description": "Pobierz aktualną konfigurację domyślnego głośnika TTS."
+    },
+    "set_tts_settings": {
+      "name": "Ustaw ustawienia TTS",
+      "description": "Skonfiguruj domyślny głośnik dla ogłoszeń TTS.",
+      "fields": {
+        "default_sinks": {
+          "name": "Domyślne wyjścia",
+          "description": "Tablica z pojedynczą nazwą sinka (lub [\"default\"] dla domyślnego systemowego)."
         }
       }
     },

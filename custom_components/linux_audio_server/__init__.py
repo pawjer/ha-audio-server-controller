@@ -22,6 +22,7 @@ SERVICE_CREATE_COMBINED_SINK = "create_combined_sink"
 SERVICE_CREATE_STEREO_PAIR = "create_stereo_pair"
 SERVICE_DELETE_COMBINED_SINK = "delete_combined_sink"
 SERVICE_MOVE_STREAM = "move_stream"
+SERVICE_MOVE_ALL_STREAMS = "move_all_streams"
 SERVICE_SET_STREAM_VOLUME = "set_stream_volume"
 SERVICE_SET_STREAM_MUTE = "set_stream_mute"
 SERVICE_ADD_RADIO_STREAM = "add_radio_stream"
@@ -34,6 +35,8 @@ SERVICE_BLUETOOTH_CONNECT = "bluetooth_connect"
 SERVICE_BLUETOOTH_DISCONNECT = "bluetooth_disconnect"
 SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT = "bluetooth_connect_and_set_default"
 SERVICE_TTS_SPEAK = "tts_speak"
+SERVICE_GET_TTS_SETTINGS = "get_tts_settings"
+SERVICE_SET_TTS_SETTINGS = "set_tts_settings"
 SERVICE_KEEP_ALIVE_START = "keep_alive_start"
 SERVICE_KEEP_ALIVE_STOP = "keep_alive_stop"
 SERVICE_KEEP_ALIVE_SET_INTERVAL = "keep_alive_set_interval"
@@ -156,6 +159,22 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         except ApiClientError as err:
             _LOGGER.error("Failed to move stream: %s", err)
             raise HomeAssistantError(f"Failed to move stream: {err}") from err
+
+    async def handle_move_all_streams(call: ServiceCall) -> None:
+        """Handle moving all streams to different output (follow me)."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            sink_name = call.data["sink_name"]
+            result = await coordinator.client.move_all_streams(sink_name)
+            await coordinator.async_request_refresh()
+            moved_count = result.get("moved_count", 0)
+            _LOGGER.info("Moved %s stream(s) to sink '%s'", moved_count, sink_name)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to move all streams: %s", err)
+            raise HomeAssistantError(f"Failed to move all streams: {err}") from err
 
     async def handle_set_stream_volume(call: ServiceCall) -> None:
         """Handle setting stream volume."""
@@ -335,11 +354,41 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         try:
             message = call.data["message"]
             language = call.data.get("language", "en")
-            await coordinator.client.speak_tts(message, language)
-            _LOGGER.info("Playing TTS message: %s (language: %s)", message, language)
+            sinks = call.data.get("sinks")
+            await coordinator.client.speak_tts(message, language, sinks)
+            _LOGGER.info("Playing TTS message: %s (language: %s, sinks: %s)", message, language, sinks)
         except ApiClientError as err:
             _LOGGER.error("Failed to play TTS message: %s", err)
             raise HomeAssistantError(f"Failed to play TTS message: {err}") from err
+
+    async def handle_get_tts_settings(call: ServiceCall) -> None:
+        """Handle getting TTS settings."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            settings = await coordinator.client.get_tts_settings()
+            _LOGGER.info("TTS settings: %s", settings)
+            # Return data will be available in service response
+            return settings
+        except ApiClientError as err:
+            _LOGGER.error("Failed to get TTS settings: %s", err)
+            raise HomeAssistantError(f"Failed to get TTS settings: {err}") from err
+
+    async def handle_set_tts_settings(call: ServiceCall) -> None:
+        """Handle setting TTS default speaker."""
+        coordinator = get_coordinator()
+        if not coordinator:
+            raise HomeAssistantError("No Linux Audio Server instance available")
+
+        try:
+            default_sinks = call.data["default_sinks"]
+            await coordinator.client.set_tts_settings(default_sinks)
+            _LOGGER.info("Set TTS default sinks to: %s", default_sinks)
+        except ApiClientError as err:
+            _LOGGER.error("Failed to set TTS settings: %s", err)
+            raise HomeAssistantError(f"Failed to set TTS settings: {err}") from err
 
     async def handle_keep_alive_start(call: ServiceCall) -> None:
         """Handle starting Bluetooth keep-alive."""
@@ -484,6 +533,15 @@ async def _async_register_services(hass: HomeAssistant) -> None:
     tts_speak_schema = vol.Schema({
         vol.Required("message"): cv.string,
         vol.Optional("language", default="en"): cv.string,
+        vol.Optional("sinks"): [cv.string],
+    })
+
+    set_tts_settings_schema = vol.Schema({
+        vol.Required("default_sinks"): [cv.string],
+    })
+
+    move_all_streams_schema = vol.Schema({
+        vol.Required("sink_name"): cv.string,
     })
 
     keep_alive_interval_schema = vol.Schema({
@@ -518,6 +576,12 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         SERVICE_MOVE_STREAM,
         handle_move_stream,
         schema=move_stream_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_MOVE_ALL_STREAMS,
+        handle_move_all_streams,
+        schema=move_all_streams_schema,
     )
     hass.services.async_register(
         DOMAIN,
@@ -593,6 +657,17 @@ async def _async_register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN,
+        SERVICE_GET_TTS_SETTINGS,
+        handle_get_tts_settings,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_TTS_SETTINGS,
+        handle_set_tts_settings,
+        schema=set_tts_settings_schema,
+    )
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_KEEP_ALIVE_START,
         handle_keep_alive_start,
     )
@@ -637,6 +712,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_CREATE_STEREO_PAIR)
             hass.services.async_remove(DOMAIN, SERVICE_DELETE_COMBINED_SINK)
             hass.services.async_remove(DOMAIN, SERVICE_MOVE_STREAM)
+            hass.services.async_remove(DOMAIN, SERVICE_MOVE_ALL_STREAMS)
             hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_VOLUME)
             hass.services.async_remove(DOMAIN, SERVICE_SET_STREAM_MUTE)
             hass.services.async_remove(DOMAIN, SERVICE_ADD_RADIO_STREAM)
@@ -649,6 +725,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_DISCONNECT)
             hass.services.async_remove(DOMAIN, SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT)
             hass.services.async_remove(DOMAIN, SERVICE_TTS_SPEAK)
+            hass.services.async_remove(DOMAIN, SERVICE_GET_TTS_SETTINGS)
+            hass.services.async_remove(DOMAIN, SERVICE_SET_TTS_SETTINGS)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_START)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_STOP)
             hass.services.async_remove(DOMAIN, SERVICE_KEEP_ALIVE_SET_INTERVAL)

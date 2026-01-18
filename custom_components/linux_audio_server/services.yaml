@@ -76,6 +76,18 @@ move_stream:
       selector:
         text:
 
+move_all_streams:
+  name: Move All Streams (Follow Me)
+  description: Move ALL active audio streams to a different output (follow me feature)
+  fields:
+    sink_name:
+      name: Sink Name
+      description: Target sink name to move all streams to
+      required: true
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
+
 set_stream_volume:
   name: Set Stream Volume
   description: Set volume for a specific audio stream
@@ -280,6 +292,29 @@ tts_speak:
               value: "ja"
             - label: "Chinese (Simplified)"
               value: "zh-CN"
+    sinks:
+      name: Sinks
+      description: Override default TTS speaker - specify which sink(s) to play on
+      required: false
+      example: ["bluez_output.F4_9D_8A_5D_E7_28.1"]
+      selector:
+        object:
+
+get_tts_settings:
+  name: Get TTS Settings
+  description: Get the current TTS default speaker configuration
+
+set_tts_settings:
+  name: Set TTS Settings
+  description: Configure the default speaker for TTS announcements
+  fields:
+    default_sinks:
+      name: Default Sinks
+      description: Array with single sink name (or ["default"] for system default)
+      required: true
+      example: ["bluez_output.F4_9D_8A_5D_E7_28.1"]
+      selector:
+        object:
 
 keep_alive_start:
   name: Start Bluetooth Keep-Alive

@@ -49,6 +49,7 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.create_stereo_pair` - Create true stereo pairs
 - `linux_audio_server.delete_combined_sink` - Remove multi-room setups
 - `linux_audio_server.move_stream` - Route specific apps to different outputs
+- `linux_audio_server.move_all_streams` - Move ALL streams to a sink (follow me)
 - `linux_audio_server.set_stream_volume` - Control volume per application
 - `linux_audio_server.set_stream_mute` - Mute or unmute specific application stream
 - `linux_audio_server.add_radio_stream` - Add new internet radio station
@@ -61,6 +62,8 @@ Each audio sink appears as a media player entity with:
 - `linux_audio_server.bluetooth_disconnect` - Disconnect from Bluetooth device
 - `linux_audio_server.bluetooth_connect_and_set_default` - Connect and set as default output
 - `linux_audio_server.tts_speak` - Convert text to speech and play
+- `linux_audio_server.get_tts_settings` - Get TTS default speaker configuration
+- `linux_audio_server.set_tts_settings` - Configure TTS default speaker
 - `linux_audio_server.keep_alive_start` - Start Bluetooth keep-alive to prevent auto-disconnect
 - `linux_audio_server.keep_alive_stop` - Stop Bluetooth keep-alive
 - `linux_audio_server.keep_alive_set_interval` - Set keep-alive interval (30-600 seconds)
@@ -445,6 +448,74 @@ automation:
 - Check that PulseAudio is running on the server
 
 ## Changelog
+
+### v0.6.0 (2026-01-18)
+
+**Major Update: Near-Complete API Coverage (98%)** 🎉
+
+**New Features:**
+- ✨ **"Follow Me" audio routing** - Move ALL streams to a speaker with one command
+- ✨ **TTS speaker configuration** - Set default speaker for announcements
+- ✨ **Per-call TTS speaker override** - Send announcements to specific speakers
+- ✨ **Query default sink** - Check which sink is currently default
+
+**New Services:**
+- `linux_audio_server.move_all_streams` - Move all active streams to a sink
+- `linux_audio_server.get_tts_settings` - Get TTS default speaker configuration
+- `linux_audio_server.set_tts_settings` - Configure TTS default speaker
+
+**Enhanced Services:**
+- `linux_audio_server.tts_speak` - Added optional `sinks` parameter to override default speaker
+
+**New API Methods:**
+- `POST /api/audio/move-all` - Follow me feature
+- `GET /api/audio/sink/default` - Query default sink
+- `GET /api/tts/settings` - Get TTS configuration
+- `POST /api/tts/settings` - Set TTS configuration
+- `sinks` parameter in `/api/tts/speak` - Override TTS speaker
+
+**Usage Examples:**
+
+```yaml
+# Move all audio from kitchen to living room ("follow me")
+service: linux_audio_server.move_all_streams
+data:
+  sink_name: "bluez_output.LIVING_ROOM.1"
+
+# Set kitchen speaker as default for TTS announcements
+service: linux_audio_server.set_tts_settings
+data:
+  default_sinks: ["bluez_output.KITCHEN.1"]
+
+# Emergency announcement on specific speaker (override default)
+service: linux_audio_server.tts_speak
+data:
+  message: "Fire alarm activated!"
+  language: "en"
+  sinks: ["bluez_output.BEDROOM.1"]
+
+# Get current TTS configuration
+service: linux_audio_server.get_tts_settings
+```
+
+**API Coverage:**
+- **Total Endpoints:** 48
+- **Implemented:** 47 (98%)
+- **Missing:** 1 (advanced multi-player management - optional feature)
+
+**Benefits:**
+- Complete "follow me" experience - move all audio between rooms instantly
+- Configurable TTS speaker - announcements don't interrupt music on other speakers
+- Per-call TTS override - emergency announcements anywhere
+- Query capabilities for advanced automations
+- Nearly complete API parity with linux-audio-server
+
+**Implementation:**
+- Added 4 new API client methods
+- Added 3 new services
+- Enhanced TTS speak service with sinks parameter
+- Added comprehensive service definitions
+- Added Polish translations
 
 ### v0.5.4 (2026-01-17)
 

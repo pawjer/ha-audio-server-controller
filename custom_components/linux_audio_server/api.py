@@ -83,6 +83,14 @@ class LinuxAudioServerApiClient:
             {"sink_name": sink_name},
         )
 
+    async def move_all_streams(self, sink_name: str) -> dict[str, Any]:
+        """Move all active streams to a specific sink (follow me)."""
+        return await self._request(
+            "POST",
+            "/api/audio/move-all",
+            {"sink_name": sink_name},
+        )
+
     async def get_volume(self) -> dict[str, Any]:
         """Get the system volume."""
         return await self._request("GET", "/api/audio/volume")
@@ -256,9 +264,20 @@ class LinuxAudioServerApiClient:
         return await self._request("POST", "/api/bluetooth/connect-and-set-default", {"address": address})
 
     # TTS endpoints
-    async def speak_tts(self, message: str, language: str = "en") -> dict[str, Any]:
+    async def speak_tts(self, message: str, language: str = "en", sinks: list[str] | None = None) -> dict[str, Any]:
         """Speak text using text-to-speech."""
-        return await self._request("POST", "/api/tts/speak", {"message": message, "language": language})
+        data = {"message": message, "language": language}
+        if sinks:
+            data["sinks"] = sinks
+        return await self._request("POST", "/api/tts/speak", data)
+
+    async def get_tts_settings(self) -> dict[str, Any]:
+        """Get TTS default speaker settings."""
+        return await self._request("GET", "/api/tts/settings")
+
+    async def set_tts_settings(self, default_sinks: list[str]) -> dict[str, Any]:
+        """Set TTS default speaker settings."""
+        return await self._request("POST", "/api/tts/settings", {"default_sinks": default_sinks})
 
     # Bluetooth Keep-Alive endpoints
     async def start_keep_alive(self) -> dict[str, Any]:
