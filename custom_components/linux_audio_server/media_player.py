@@ -231,9 +231,41 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                 return sink
         return None
 
+    def _get_active_player_for_sink(self) -> str | None:
+        """Get the player actually routing audio to this sink (ground truth from sink-inputs)."""
+        sink_inputs = self.coordinator.data.get("sink_inputs", [])
+
+        # Look for Mopidy sink-inputs routing to this sink
+        for sink_input in sink_inputs:
+            if sink_input.get("sink") == self._sink_name:
+                app_name = sink_input.get("name", "")
+                # Match "Mopidy Player 2@unix:/run/pulse/native" -> "player2"
+                # Match "Mopidy Player 1 (TTS)@unix:/run/pulse/native" -> "player1"
+                if "Mopidy Player" in app_name:
+                    # Extract player number
+                    if "Player 1" in app_name:
+                        return "player1"
+                    elif "Player 2" in app_name:
+                        return "player2"
+                    elif "Player 3" in app_name:
+                        return "player3"
+                    elif "Player 4" in app_name:
+                        return "player4"
+        return None
+
     def _get_assigned_player_track(self) -> dict[str, Any] | None:
         """Get current track info from the player assigned to this sink."""
-        # Check which player is assigned to this sink
+        # First check which player is ACTUALLY routing audio to this sink (ground truth)
+        active_player = self._get_active_player_for_sink()
+
+        if active_player:
+            # Get track from the active player
+            players = self.coordinator.data.get("players", [])
+            for player in players:
+                if player.get("id") == active_player:
+                    return player.get("current_track")
+
+        # Fallback: check player assignments (might be stale but better than nothing)
         player_assignments = self.coordinator.data.get("player_assignments", {})
         assigned_player = player_assignments.get(self._sink_name)
 
@@ -255,7 +287,25 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if sink is None:
             return MediaPlayerState.OFF
 
-        # For multi-player setups, check which player is assigned to this sink
+        # For multi-player setups, check which player is ACTUALLY routing audio to this sink
+        # This is the ground truth from sink-inputs, not just assignments which can be stale
+        active_player = self._get_active_player_for_sink()
+
+        if active_player:
+            # Get the state of the active player
+            players = self.coordinator.data.get("players", [])
+            for player in players:
+                if player.get("id") == active_player:
+                    player_state = player.get("state")
+                    if player_state == "playing":
+                        return MediaPlayerState.PLAYING
+                    elif player_state == "paused":
+                        return MediaPlayerState.PAUSED
+                    elif player_state == "stopped":
+                        return MediaPlayerState.IDLE
+                    break
+
+        # Fallback: check player assignments (might be stale but better than nothing)
         player_assignments = self.coordinator.data.get("player_assignments", {})
         assigned_player = player_assignments.get(self._sink_name)
 

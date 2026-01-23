@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.6] - 2026-01-23
+
+### Fixed
+- **State now based on actual audio routing, not stale assignments** - Fixes "idle" state when audio is actually playing
+- State and media info now use sink-inputs to determine which player is ACTUALLY routing audio to each sink
+- Handles cases where player assignments are out of sync with reality
+
+### Added
+- `_get_active_player_for_sink()` method to check which player is routing audio via sink-inputs (ground truth)
+- Sink-inputs checking in state property before falling back to assignments
+- Sink-inputs checking in `_get_assigned_player_track()` for accurate media information
+
+### Changed
+- State property now prioritizes actual audio routing over recorded assignments
+- Multi-player state detection is now robust against stale assignment data
+- Falls back to assignments only when sink-inputs don't show active routing
+
+### Technical
+- v0.6.5 attempted to fix by passing sink parameter, but assignments can become stale
+- v0.6.6 solves the root cause by checking PulseAudio sink-inputs for ground truth
+- Sink-inputs show which Mopidy player is actually sending audio to which sink
+
 ## [0.6.5] - 2026-01-23
 
 ### Fixed
@@ -188,6 +210,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UI-based configuration flow
 - Real-time updates via 5-second polling
 
+[0.6.6]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.2...v0.6.3
