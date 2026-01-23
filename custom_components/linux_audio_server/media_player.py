@@ -231,6 +231,23 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                 return sink
         return None
 
+    def _get_assigned_player_track(self) -> dict[str, Any] | None:
+        """Get current track info from the player assigned to this sink."""
+        # Check which player is assigned to this sink
+        player_assignments = self.coordinator.data.get("player_assignments", {})
+        assigned_player = player_assignments.get(self._sink_name)
+
+        if assigned_player:
+            # Get the assigned player's data
+            players = self.coordinator.data.get("players", [])
+            for player in players:
+                if player.get("id") == assigned_player:
+                    return player.get("current_track")
+
+        # Fallback to global playback data (player1)
+        playback = self.coordinator.data.get("playback", {})
+        return playback.get("track")
+
     @property
     def state(self) -> MediaPlayerState:
         """Return the state of the device."""
@@ -238,7 +255,25 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if sink is None:
             return MediaPlayerState.OFF
 
-        # Use playback state if available
+        # For multi-player setups, check which player is assigned to this sink
+        player_assignments = self.coordinator.data.get("player_assignments", {})
+        assigned_player = player_assignments.get(self._sink_name)
+
+        if assigned_player:
+            # Get the state of the assigned player
+            players = self.coordinator.data.get("players", [])
+            for player in players:
+                if player.get("id") == assigned_player:
+                    player_state = player.get("state")
+                    if player_state == "playing":
+                        return MediaPlayerState.PLAYING
+                    elif player_state == "paused":
+                        return MediaPlayerState.PAUSED
+                    elif player_state == "stopped":
+                        return MediaPlayerState.IDLE
+                    break
+
+        # Fallback to global playback state (player1)
         playback = self.coordinator.data.get("playback", {})
         playback_state = playback.get("state")
 
@@ -289,16 +324,15 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def media_content_type(self) -> str | None:
         """Return the content type of current playing media."""
-        playback = self.coordinator.data.get("playback", {})
-        if playback.get("track"):
+        track = self._get_assigned_player_track()
+        if track:
             return "music"
         return None
 
     @property
     def media_title(self) -> str | None:
         """Return the title of current playing media."""
-        playback = self.coordinator.data.get("playback", {})
-        track = playback.get("track")
+        track = self._get_assigned_player_track()
         if track:
             return track.get("name")
         return None
@@ -306,8 +340,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def media_artist(self) -> str | None:
         """Return the artist of current playing media."""
-        playback = self.coordinator.data.get("playback", {})
-        track = playback.get("track")
+        track = self._get_assigned_player_track()
         if track:
             return track.get("artist")
         return None
@@ -315,8 +348,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def media_album_name(self) -> str | None:
         """Return the album name of current playing media."""
-        playback = self.coordinator.data.get("playback", {})
-        track = playback.get("track")
+        track = self._get_assigned_player_track()
         if track:
             return track.get("album")
         return None
