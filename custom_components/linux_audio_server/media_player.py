@@ -366,28 +366,59 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         _LOGGER.warning("Source '%s' not found in available sinks", source)
 
     async def async_media_play(self) -> None:
-        """Send play command."""
-        await self.coordinator.client.play()
+        """Send play command to this sink's assigned player."""
+        try:
+            # Use sink-based playback control (routes to correct player automatically)
+            await self.coordinator.client.play_sink(self._sink_name)
+            _LOGGER.debug("Play command sent to sink %s", self._sink_name)
+        except Exception as err:
+            # If no player is assigned (404), this is expected - user needs to play media first
+            _LOGGER.debug("Play command failed for sink %s: %s", self._sink_name, err)
+            # Silently ignore - playback control requires active media
         await self.coordinator.async_request_refresh()
 
     async def async_media_pause(self) -> None:
-        """Send pause command."""
-        await self.coordinator.client.pause()
+        """Send pause command to this sink's assigned player."""
+        try:
+            # Use sink-based playback control (routes to correct player automatically)
+            await self.coordinator.client.pause_sink(self._sink_name)
+            _LOGGER.debug("Pause command sent to sink %s", self._sink_name)
+        except Exception as err:
+            # If no player is assigned (404), this is expected
+            _LOGGER.debug("Pause command failed for sink %s: %s", self._sink_name, err)
         await self.coordinator.async_request_refresh()
 
     async def async_media_stop(self) -> None:
-        """Send stop command."""
-        await self.coordinator.client.stop()
+        """Send stop command to this sink's assigned player."""
+        try:
+            # Use sink-based playback control (routes to correct player automatically)
+            await self.coordinator.client.stop_sink(self._sink_name)
+            _LOGGER.debug("Stop command sent to sink %s", self._sink_name)
+        except Exception as err:
+            # If no player is assigned (404), this is expected
+            _LOGGER.debug("Stop command failed for sink %s: %s", self._sink_name, err)
         await self.coordinator.async_request_refresh()
 
     async def async_media_next_track(self) -> None:
-        """Send next track command."""
-        await self.coordinator.client.next_track()
+        """Send next track command to this sink's assigned player."""
+        try:
+            # Use sink-based playback control (routes to correct player automatically)
+            await self.coordinator.client.next_track_sink(self._sink_name)
+            _LOGGER.debug("Next track command sent to sink %s", self._sink_name)
+        except Exception as err:
+            # If no player is assigned (404), this is expected
+            _LOGGER.debug("Next track command failed for sink %s: %s", self._sink_name, err)
         await self.coordinator.async_request_refresh()
 
     async def async_media_previous_track(self) -> None:
-        """Send previous track command."""
-        await self.coordinator.client.previous_track()
+        """Send previous track command to this sink's assigned player."""
+        try:
+            # Use sink-based playback control (routes to correct player automatically)
+            await self.coordinator.client.previous_track_sink(self._sink_name)
+            _LOGGER.debug("Previous track command sent to sink %s", self._sink_name)
+        except Exception as err:
+            # If no player is assigned (404), this is expected
+            _LOGGER.debug("Previous track command failed for sink %s: %s", self._sink_name, err)
         await self.coordinator.async_request_refresh()
 
     async def async_play_media(self, media_type: str, media_id: str, **kwargs) -> None:

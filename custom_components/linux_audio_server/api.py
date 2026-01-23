@@ -217,6 +217,31 @@ class LinuxAudioServerApiClient:
         """Go back to the previous track."""
         return await self._request("POST", "/api/playback/previous")
 
+    async def play_sink(self, sink_name: str) -> dict[str, Any]:
+        """Start or resume playback on a specific sink."""
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("POST", f"/api/playback/sink/{encoded_name}/play")
+
+    async def pause_sink(self, sink_name: str) -> dict[str, Any]:
+        """Pause playback on a specific sink."""
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("POST", f"/api/playback/sink/{encoded_name}/pause")
+
+    async def stop_sink(self, sink_name: str) -> dict[str, Any]:
+        """Stop playback on a specific sink."""
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("POST", f"/api/playback/sink/{encoded_name}/stop")
+
+    async def next_track_sink(self, sink_name: str) -> dict[str, Any]:
+        """Skip to next track on a specific sink."""
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("POST", f"/api/playback/sink/{encoded_name}/next")
+
+    async def previous_track_sink(self, sink_name: str) -> dict[str, Any]:
+        """Go back to previous track on a specific sink."""
+        encoded_name = quote(sink_name, safe="")
+        return await self._request("POST", f"/api/playback/sink/{encoded_name}/previous")
+
     async def pause_all(self) -> dict[str, Any]:
         """Pause all Mopidy players."""
         return await self._request("POST", "/api/playback/pause-all")

@@ -54,9 +54,12 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             bluetooth_data = {}
             try:
                 bluetooth_data = await self.client.get_bluetooth_devices()
+                # Check if Bluetooth is available (new field from backend)
+                if not bluetooth_data.get("available", True):
+                    _LOGGER.debug("Bluetooth service not yet available, will retry on next update")
             except ApiClientError as err:
                 _LOGGER.debug("Failed to fetch Bluetooth devices: %s", err)
-                bluetooth_data = {"devices": []}
+                bluetooth_data = {"devices": [], "available": False}
 
             keep_alive_data = {}
             try:
