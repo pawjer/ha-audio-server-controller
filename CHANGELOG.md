@@ -1,0 +1,166 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.6.3] - 2026-01-23
+
+### Fixed
+- **Play/pause/stop buttons now work correctly in multi-player setups** - Buttons previously only controlled player1 regardless of which player was assigned to the Bluetooth speaker/sink
+- Media controls (play, pause, stop, next, previous) now automatically route to the correct player based on sink assignments
+- Integration starts gracefully even when Bluetooth service is initializing
+
+### Added
+- Sink-based playback API methods for precise control
+- Debug logging for playback commands showing which sink received the command
+- Graceful error handling for playback commands when no player is assigned
+- Support for backend's new `available` field in Bluetooth devices API
+
+### Changed
+- Media player playback controls now use sink-based endpoints instead of global player1 endpoints
+- 404 errors from unassigned sinks are logged at DEBUG level instead of ERROR (expected behavior)
+- Improved coordinator handling of Bluetooth service availability during startup
+
+### Technical
+- Requires linux-audio-server with sink-based playback endpoints (commit 5b22004 or later)
+- API client properly encodes sink names in URLs to handle special characters
+- All playback methods maintain backward compatibility
+
+## [0.6.2] - 2026-01-18
+
+### Added
+- **Multi-player management support** - 100% API coverage achieved (51/51 endpoints)!
+- `assign_player` service for assigning specific Mopidy players to sinks
+- Mopidy players sensor showing active player instances and sink assignments
+- Support for independent content per room using player1-4
+
+### Technical
+- Complete coverage of linux-audio-server API
+- Multi-player endpoints integrated for advanced multi-room setups
+
+## [0.6.1] - 2026-01-18
+
+### Added
+- **Batch operations**: `pause_all` and `stop_all` services for controlling all Mopidy players at once
+- **Bluetooth scan service** exposed for triggering device discovery
+- Bluetooth scan button entity
+
+### Fixed
+- Bluetooth speaker availability when disconnected - entities remain available for power control
+
+## [0.6.0] - 2026-01-18
+
+### Added
+- **"Follow Me" feature** - `move_all_streams` service to move audio between rooms
+- **TTS speaker configuration** - Set default speaker for text-to-speech
+- Per-call TTS speaker override via `sinks` parameter
+- `get_tts_settings` and `set_tts_settings` services
+
+### Technical
+- 98% API coverage (50/51 endpoints)
+
+## [0.5.4] - 2026-01-17
+
+### Fixed
+- Stereo pair deletion now works correctly
+
+### Added
+- `update_radio_stream` service to modify existing radio station URLs
+
+## [0.5.3] - 2026-01-17
+
+### Added
+- Stream mute/unmute service for per-application audio control
+- `set_stream_mute` service with stream index parameter
+
+## [0.5.2] - 2026-01-17
+
+### Added
+- **Automatic cleanup of stale Bluetooth speaker entities**
+- `cleanup_stale_bluetooth` service for manual cleanup
+- Entities are removed when Bluetooth device is unpaired and sink no longer exists
+
+### Changed
+- Bluetooth speaker entities are kept available even when disconnected (for power button functionality)
+
+## [0.5.1] - 2026-01-17
+
+### Fixed
+- Bluetooth speaker entities remain available when disconnected (not unpaired)
+- Power button (turn_on/turn_off) works even when speaker is disconnected
+
+### Changed
+- Entity availability logic improved for Bluetooth devices
+
+## [0.5.0] - 2026-01-17
+
+### Added
+- **Turn on/off support for Bluetooth speakers** - Power button controls connect/disconnect
+- `async_turn_on` and `async_turn_off` methods for Bluetooth media players
+- TURN_ON and TURN_OFF features added to Bluetooth speaker entities
+
+## [0.4.x] - 2026-01-16
+
+### Added
+- **BROWSE_MEDIA feature** for media dashboard integration
+- **PLAY_MEDIA feature** - Media players appear as audio output targets
+- Cast media to specific sinks from Home Assistant media screen
+- Browse and play radio stations from media player interface
+
+## [0.3.0] - 2026-01-15
+
+### Added
+- **Internet radio management** - Add, delete, play radio stations
+- **Bluetooth device management** - Scan, pair, connect, disconnect
+- Radio station selector (select entity)
+- Device tracker entities for Bluetooth devices
+- Bluetooth keep-alive functionality to prevent auto-disconnect
+- Services: `add_radio_stream`, `delete_radio_stream`, `play_radio_stream`, `play_radio_url`
+- Services: `bluetooth_pair`, `bluetooth_connect`, `bluetooth_disconnect`, `bluetooth_scan`
+- Services: `keep_alive_start`, `keep_alive_stop`, `keep_alive_set_interval`, `keep_alive_enable_sink`, `keep_alive_disable_sink`
+
+## [0.2.0] - 2026-01-14
+
+### Added
+- **Full playback control** - Play, pause, stop, next, previous
+- **Media information display** - Track name, artist, album, position
+- Playback state tracking (playing, paused, stopped, idle)
+- Media content type and metadata extraction
+
+## [0.1.1] - 2026-01-13
+
+### Fixed
+- API endpoint error for default sink
+
+## [0.1.0] - 2026-01-13
+
+### Added
+- Initial release
+- Media player entities for each audio sink
+- Volume control per sink
+- Mute/unmute functionality
+- Multi-room audio support (combined sinks and stereo pairs)
+- Individual stream control (per-app volume and routing)
+- Switch entities for default sink selection
+- Active streams sensor
+- Services: `create_combined_sink`, `create_stereo_pair`, `delete_combined_sink`
+- Services: `move_stream`, `set_stream_volume`, `move_all_streams`
+- UI-based configuration flow
+- Real-time updates via 5-second polling
+
+[0.6.3]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.5.4...v0.6.0
+[0.5.4]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.5.3...v0.5.4
+[0.5.3]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.4.0...v0.5.0
+[0.4.x]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/pawjer/ha-audio-server-controller/releases/tag/v0.1.0
