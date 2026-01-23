@@ -268,13 +268,19 @@ class LinuxAudioServerApiClient:
         encoded_name = quote(name, safe="")
         return await self._request("PUT", f"/api/radio/stream/{encoded_name}", {"url": url})
 
-    async def play_radio_stream(self, name: str) -> dict[str, Any]:
+    async def play_radio_stream(self, name: str, sink: str | None = None) -> dict[str, Any]:
         """Play a predefined radio stream."""
-        return await self._request("POST", "/api/radio/play", {"stream": name})
+        data = {"stream": name}
+        if sink:
+            data["sink"] = sink
+        return await self._request("POST", "/api/radio/play", data)
 
-    async def play_radio_url(self, url: str) -> dict[str, Any]:
+    async def play_radio_url(self, url: str, sink: str | None = None) -> dict[str, Any]:
         """Play arbitrary radio URL."""
-        return await self._request("POST", "/api/radio/play_url", {"url": url})
+        data = {"url": url}
+        if sink:
+            data["sink"] = sink
+        return await self._request("POST", "/api/radio/play_url", data)
 
     async def scan_bluetooth(self, duration: int = 10) -> dict[str, Any]:
         """Scan for Bluetooth devices."""

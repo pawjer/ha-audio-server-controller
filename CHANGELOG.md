@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.5] - 2026-01-23
+
+### Fixed
+- **Player assignments now recorded correctly when playing media** - Backend can now track which player is assigned to which sink, completing the multi-player state fix from v0.6.4
+- Media player state now updates correctly after starting playback on Bluetooth speakers
+
+### Changed
+- `play_radio_stream()` and `play_radio_url()` API methods now accept optional `sink` parameter
+- Media player entities now pass their sink name when playing media, enabling backend to record player assignments
+- Coordinator refetches assignments every 5 seconds, ensuring dynamic state updates
+
+### Technical
+- Completes the multi-player state tracking: v0.6.4 fixed reading assignments, v0.6.5 fixes recording them
+- No backend changes required - uses existing assignment API
+- Backwards compatible: sink parameter is optional
+
 ## [0.6.4] - 2026-01-23
 
 ### Fixed
@@ -172,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UI-based configuration flow
 - Real-time updates via 5-second polling
 
+[0.6.5]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/pawjer/ha-audio-server-controller/compare/v0.6.1...v0.6.2

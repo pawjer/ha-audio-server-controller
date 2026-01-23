@@ -470,21 +470,21 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if media_id.startswith(("http://", "https://")):
             # Direct URL - use radio URL endpoint
             _LOGGER.debug("Playing HTTP(S) URL via radio endpoint: %s", media_id)
-            await self.coordinator.client.play_radio_url(media_id)
+            await self.coordinator.client.play_radio_url(media_id, sink=self._sink_name)
         elif media_id.startswith("spotify:"):
             # Spotify URI - use Mopidy's tracklist.add + playback.play
             _LOGGER.debug("Playing Spotify URI: %s", media_id)
             # For now, use play_radio_url which will forward to Mopidy
             # TODO: Could add dedicated Mopidy tracklist API methods
-            await self.coordinator.client.play_radio_url(media_id)
+            await self.coordinator.client.play_radio_url(media_id, sink=self._sink_name)
         elif media_id.startswith("file://"):
             # Local file - use Mopidy
             _LOGGER.debug("Playing local file: %s", media_id)
-            await self.coordinator.client.play_radio_url(media_id)
+            await self.coordinator.client.play_radio_url(media_id, sink=self._sink_name)
         else:
             # Assume it's a URI and try to play it
             _LOGGER.debug("Playing URI: %s", media_id)
-            await self.coordinator.client.play_radio_url(media_id)
+            await self.coordinator.client.play_radio_url(media_id, sink=self._sink_name)
 
         await self.coordinator.async_request_refresh()
 
