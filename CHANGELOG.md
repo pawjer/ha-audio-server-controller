@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.7] - 2026-01-25
+
+### Fixed
+- **Entity IDs no longer have duplicate names** - Entity IDs like `john_paulacton_ii_john_paulacton_ii` are now correctly named as `john_paulacton_ii`
+- Fixed `_attr_has_entity_name` setting in media_player and switch platforms that was causing device name to be combined with entity name
+
+### Changed
+- Media player entities now use entity name directly instead of combining device + entity name
+- Switch entities (default sink switches) now use entity name directly
+
+### Migration
+- After updating, users should reload the integration in Home Assistant
+- Delete old duplicate entities in Settings → Devices & Services → Entities
+- New correctly-named entities will be created automatically
+
 ## [0.6.6] - 2026-01-23
 
 ### Fixed
