@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-01-25
+
+### Added
+- **Per-sink radio station selectors** - Automatic dropdown selector for each audio sink
+- Each sink now gets its own `select.<sink_name>_radio` entity
+- Radio stations automatically populated from backend (no manual configuration needed!)
+- "Off" option in dropdowns to stop playback
+- Selecting a station plays it immediately on that specific sink
+- New minimalist dashboard with per-sink radio control
+- `SinkRadioStationSelect` class for per-sink radio selection
+
+### Changed
+- Select platform now creates per-sink radio selectors in addition to global selector
+- Dashboard examples updated to showcase new per-sink radio control
+- Documentation updated with zero-configuration setup instructions
+
+### Technical
+- Auto-discovery of radio stations from backend for each sink selector
+- Dynamic entity creation for new sinks
+- Proper device info attachment for sink-based entities
+- Current station detection based on player assignments
+- Uses `stop_sink()` API method for stopping specific sink playback
+
 ## [0.6.7] - 2026-01-25
 
 ### Fixed

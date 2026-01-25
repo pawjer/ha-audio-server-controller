@@ -1,0 +1,128 @@
+# Linux Audio Server - Minimalist Dashboard
+# Simple, functional, per-sink control
+# Uses built-in cards only - no custom cards required
+# No configuration needed - radio stations automatically populated from backend!
+
+title: Audio
+type: sections
+
+sections:
+  # ============================================
+  # USB-C DOCK
+  # ============================================
+  - type: grid
+    title: USB-C Dock
+    columns: 1
+    cards:
+      # Playback control with volume
+      - type: media-control
+        entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+
+      # Radio station selector (auto-populated from backend)
+      - type: entities
+        entities:
+          - entity: select.usb_c_dual_4k_dock_analogowe_stereo_radio
+            name: Radio Station
+
+  # ============================================
+  # BLUETOOTH SPEAKER
+  # ============================================
+  - type: grid
+    title: John Paulacton II
+    columns: 1
+    cards:
+      # Playback control with volume
+      - type: media-control
+        entity: media_player.john_paulacton_ii
+
+      # Radio station selector (auto-populated from backend)
+      - type: entities
+        entities:
+          - entity: select.john_paulacton_ii_radio
+            name: Radio Station
+
+      # Bluetooth connection controls
+      - type: entities
+        entities:
+          - entity: device_tracker.john_paulacton_ii
+            name: Connection
+            secondary_info: last-changed
+          - type: button
+            name: Connect
+            icon: mdi:bluetooth-connect
+            action_name: Connect
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_connect_and_set_default
+              data:
+                address: "54:B7:E5:89:E6:E3"
+          - type: button
+            name: Disconnect
+            icon: mdi:bluetooth-off
+            action_name: Disconnect
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_disconnect
+              data:
+                address: "54:B7:E5:89:E6:E3"
+
+  # ============================================
+  # GLOBAL CONTROLS
+  # ============================================
+  - type: grid
+    title: Global
+    columns: 3
+    cards:
+      - type: button
+        name: Pause All
+        icon: mdi:pause-circle
+        tap_action:
+          action: call-service
+          service: linux_audio_server.pause_all
+
+      - type: button
+        name: Stop All
+        icon: mdi:stop-circle
+        tap_action:
+          action: call-service
+          service: linux_audio_server.stop_all
+
+      - type: entity
+        entity: sensor.active_streams
+        name: Active Streams
+
+# ============================================
+# SETUP INSTRUCTIONS
+# ============================================
+#
+# NO CONFIGURATION NEEDED! 🎉
+#
+# Radio station selectors are automatically created by the integration:
+# - One select entity per audio sink
+# - Options automatically populated from backend radio stations
+# - "Off" option to stop playback
+# - Selecting a station plays it immediately on that sink
+#
+# Entity naming pattern:
+#   select.<sink_name>_radio
+#
+# Examples:
+#   select.usb_c_dual_4k_dock_analogowe_stereo_radio
+#   select.john_paulacton_ii_radio
+#   select.built_in_audio_analog_stereo_radio
+#
+# To customize this dashboard:
+# 1. Replace entity IDs with your actual sink names
+# 2. Update Bluetooth MAC addresses (if applicable)
+# 3. Add more sinks by copying a section
+#
+# To manage radio stations in the backend:
+#   service: linux_audio_server.add_radio_stream
+#   data:
+#     name: "Your Station Name"
+#     url: "http://your-stream-url"
+#
+# Each sink section contains:
+# - Media control card (playback, volume, current track)
+# - Radio dropdown selector (auto-populated, no config needed!)
+# - Bluetooth controls (if applicable)

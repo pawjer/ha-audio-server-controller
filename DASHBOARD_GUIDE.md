@@ -4,9 +4,30 @@ This guide provides ready-to-use dashboard configurations for controlling your m
 
 ## 📱 Dashboard Options
 
-We provide **3 dashboard configurations** to suit different needs:
+We provide **4 dashboard configurations** to suit different needs:
 
-### 1. **Full Dashboard** (`dashboard-example.yaml`)
+### 1. **Minimalist Dashboard** (`dashboard-minimalist.yaml`) ⭐ NEW
+**Best for:** Clean UI, per-sink control, zero configuration
+
+**Features:**
+- ✅ Per-sink radio dropdowns (automatically populated from backend)
+- ✅ Media control cards with volume and playback
+- ✅ At-a-glance view of all speakers
+- ✅ Bluetooth connect/disconnect
+- ✅ Global pause/stop controls
+- ✅ One box per speaker - everything together
+- ✅ **Zero configuration** - radio selectors auto-created by integration
+
+**Requirements:**
+- **None** - Uses only built-in Home Assistant cards
+- Integration v0.6.8+ (includes automatic per-sink radio selectors)
+
+**Design Philosophy:**
+Simple. Functional. Fast. No manual configuration. Radio stations sync automatically from backend.
+
+📖 [Minimalist Dashboard Guide](DASHBOARD_MINIMALIST.md)
+
+### 2. **Full Dashboard** (`dashboard-example.yaml`)
 **Best for:** Desktop/tablet, power users, complete feature access
 
 **Features:**
@@ -25,7 +46,7 @@ We provide **3 dashboard configurations** to suit different needs:
   - [multiple-entity-row](https://github.com/benct/lovelace-multiple-entity-row)
   - [text-input-row](https://github.com/gadgetchnnel/lovelace-text-input-row)
 
-### 2. **Simple Dashboard** (`dashboard-simple.yaml`)
+### 3. **Simple Dashboard** (`dashboard-simple.yaml`)
 **Best for:** Users who don't want custom cards, simpler setup
 
 **Features:**
@@ -40,7 +61,7 @@ We provide **3 dashboard configurations** to suit different needs:
 **Requirements:**
 - **None** - Uses only built-in Home Assistant cards
 
-### 3. **Mobile Dashboard** (`dashboard-mobile.yaml`)
+### 4. **Mobile Dashboard** (`dashboard-mobile.yaml`)
 **Best for:** Phones, quick access, minimal UI
 
 **Features:**

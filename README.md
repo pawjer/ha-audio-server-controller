@@ -151,6 +151,32 @@ Supported languages include: `en`, `es`, `fr`, `de`, `it`, `pl`, `ja`, `zh-CN`, 
 
 The integration will automatically discover all available audio sinks and create entities for them.
 
+## Dashboards
+
+We provide **4 ready-to-use dashboard configurations** to get you started:
+
+1. **[Minimalist Dashboard](DASHBOARD_MINIMALIST.md)** (`dashboard-minimalist.yaml`) ⭐ **Recommended**
+   - Clean per-sink control with auto-populated radio dropdowns
+   - Each speaker in one box with all controls
+   - **Zero configuration** - radio selectors auto-created
+   - No custom cards required
+   - Perfect for most users
+
+2. **Full Dashboard** (`dashboard-example.yaml`)
+   - Power user features with auto-discovery
+   - Inline radio station management
+   - Requires HACS custom cards
+
+3. **Simple Dashboard** (`dashboard-simple.yaml`)
+   - All features, no custom cards
+   - Manual configuration
+
+4. **Mobile Dashboard** (`dashboard-mobile.yaml`)
+   - Optimized for phones
+   - Quick access controls
+
+📖 **See [DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md) for detailed setup instructions**
+
 ## Usage
 
 ### Basic Volume Control
