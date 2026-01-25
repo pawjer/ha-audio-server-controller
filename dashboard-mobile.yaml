@@ -1,0 +1,136 @@
+# Linux Audio Server - Mobile Dashboard
+# Optimized for phone screens - minimal and fast
+# Copy this to your Home Assistant dashboard configuration
+
+title: Audio
+type: sections
+
+sections:
+  # ============================================
+  # QUICK PLAYBACK
+  # ============================================
+  - type: grid
+    title: ""
+    columns: 1
+    cards:
+      # Main speaker - big and easy to tap
+      - type: media-control
+        entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+
+      # Bluetooth speaker
+      - type: media-control
+        entity: media_player.john_paulacton_ii
+
+  # ============================================
+  # RADIO QUICK SELECT
+  # ============================================
+  - type: grid
+    title: 📻
+    columns: 2
+    cards:
+      # Quick radio buttons - 2 columns for easy thumb tapping
+      - type: button
+        name: Radio Nowy Swiat
+        icon: mdi:radio
+        show_state: false
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Radio Nowy Swiat
+
+      - type: button
+        name: Jazz FM
+        icon: mdi:radio
+        show_state: false
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Jazz FM
+
+      - type: button
+        name: Classical
+        icon: mdi:piano
+        show_state: false
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Classical Music
+
+      - type: button
+        name: More...
+        icon: mdi:dots-horizontal
+        show_state: false
+        tap_action:
+          action: more-info
+          entity: select.radio_stations
+
+  # ============================================
+  # BLUETOOTH QUICK CONNECT
+  # ============================================
+  - type: grid
+    title: 🔵
+    columns: 1
+    cards:
+      - type: entities
+        entities:
+          - entity: device_tracker.john_paulacton_ii
+            name: John Paulacton II
+            secondary_info: last-changed
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_connect_and_set_default
+              data:
+                address: "54:B7:E5:89:E6:E3"
+            hold_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_disconnect
+              data:
+                address: "54:B7:E5:89:E6:E3"
+
+  # ============================================
+  # QUICK ACTIONS
+  # ============================================
+  - type: grid
+    title: ⚡
+    columns: 3
+    cards:
+      - type: button
+        name: Pause All
+        icon: mdi:pause-circle
+        show_name: true
+        show_icon: true
+        tap_action:
+          action: call-service
+          service: linux_audio_server.pause_all
+
+      - type: button
+        name: Stop All
+        icon: mdi:stop-circle
+        show_name: true
+        show_icon: true
+        tap_action:
+          action: call-service
+          service: linux_audio_server.stop_all
+
+      - type: button
+        name: Scan BT
+        icon: mdi:bluetooth-connect
+        show_name: true
+        show_icon: true
+        tap_action:
+          action: call-service
+          service: linux_audio_server.bluetooth_scan
+          data:
+            duration: 10
+
+# ============================================
+# USAGE TIPS FOR MOBILE
+# ============================================
+# - Tap speaker card = Play/Pause
+# - Tap radio button = Play that station
+# - Tap Bluetooth device = Connect
+# - Hold Bluetooth device = Disconnect
+# - Swipe down to refresh

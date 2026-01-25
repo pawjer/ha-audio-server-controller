@@ -1,0 +1,238 @@
+# Linux Audio Server - Simple Dashboard (Built-in Cards Only)
+# No custom cards required - works out of the box
+# Copy this to your Home Assistant dashboard configuration
+
+title: Audio Control
+type: sections
+
+sections:
+  # ============================================
+  # NOW PLAYING
+  # ============================================
+  - type: grid
+    title: 🎵 Now Playing
+    columns: 2
+    cards:
+      # Your main speakers
+      - type: media-control
+        entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+
+      - type: media-control
+        entity: media_player.john_paulacton_ii
+
+      # Add more speakers as needed
+      # - type: media-control
+      #   entity: media_player.your_other_speaker
+
+  # ============================================
+  # QUICK ACCESS
+  # ============================================
+  - type: grid
+    title: ⚡ Quick Access
+    columns: 3
+    cards:
+      # Radio selector
+      - type: entities
+        title: 📻 Radio
+        entities:
+          - entity: select.radio_stations
+            name: Station
+
+      # Bluetooth status
+      - type: entities
+        title: 🔵 Bluetooth
+        entities:
+          - entity: device_tracker.john_paulacton_ii
+            name: John Paulacton II
+            secondary_info: last-changed
+          # Add more Bluetooth devices
+          - type: button
+            name: Scan Devices
+            icon: mdi:bluetooth-connect
+            action_name: Scan
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_scan
+              data:
+                duration: 10
+
+      # Players info
+      - type: entities
+        title: 🎵 Players
+        entities:
+          - entity: sensor.mopidy_players
+            name: Active Players
+
+  # ============================================
+  # ALL SPEAKERS
+  # ============================================
+  - type: grid
+    title: 🔊 All Speakers
+    columns: 1
+    cards:
+      - type: glance
+        title: Speaker Status
+        show_state: true
+        state_color: true
+        entities:
+          - entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+            name: USB-C Dock
+          - entity: media_player.john_paulacton_ii
+            name: John Paulacton
+          # Add all your media players here
+
+  # ============================================
+  # RADIO STATIONS
+  # ============================================
+  - type: grid
+    title: 📻 Radio Stations
+    columns: 4
+    cards:
+      # Create a button for each station you have
+      # Update these with your actual station names
+      - type: button
+        name: Radio Nowy Swiat
+        icon: mdi:radio
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Radio Nowy Swiat
+
+      - type: button
+        name: Jazz FM
+        icon: mdi:radio
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Jazz FM
+
+      - type: button
+        name: Classical Music
+        icon: mdi:radio
+        tap_action:
+          action: call-service
+          service: linux_audio_server.play_radio_stream
+          data:
+            name: Classical Music
+
+      # Add more radio stations as buttons
+      # Copy the button template above
+
+      # Add new station button
+      - type: button
+        name: Add Station
+        icon: mdi:plus-circle
+        tap_action:
+          action: navigate
+          navigation_path: /config/helpers
+
+  # ============================================
+  # BLUETOOTH CONTROLS
+  # ============================================
+  - type: grid
+    title: 🔵 Bluetooth Controls
+    columns: 2
+    cards:
+      # Connect buttons for each Bluetooth speaker
+      - type: entities
+        title: John Paulacton II
+        entities:
+          - entity: device_tracker.john_paulacton_ii
+            name: Status
+            secondary_info: last-changed
+          - type: buttons
+            entities:
+              - entity: script.connect_john_paulacton
+                name: Connect
+                icon: mdi:bluetooth-connect
+                tap_action:
+                  action: call-service
+                  service: linux_audio_server.bluetooth_connect_and_set_default
+                  data:
+                    address: "54:B7:E5:89:E6:E3"
+              - entity: script.disconnect_john_paulacton
+                name: Disconnect
+                icon: mdi:bluetooth-off
+                tap_action:
+                  action: call-service
+                  service: linux_audio_server.bluetooth_disconnect
+                  data:
+                    address: "54:B7:E5:89:E6:E3"
+
+      # Add more Bluetooth devices with similar structure
+
+  # ============================================
+  # MULTI-ROOM CONTROLS
+  # ============================================
+  - type: grid
+    title: 🏠 Multi-Room
+    columns: 2
+    cards:
+      # Global playback controls
+      - type: entities
+        title: Global Controls
+        entities:
+          - type: button
+            name: Pause All Players
+            icon: mdi:pause-circle
+            tap_action:
+              action: call-service
+              service: linux_audio_server.pause_all
+          - type: button
+            name: Stop All Players
+            icon: mdi:stop-circle
+            tap_action:
+              action: call-service
+              service: linux_audio_server.stop_all
+
+      # Stream info
+      - type: entities
+        title: Audio Streams
+        entities:
+          - entity: sensor.active_streams
+            name: Active Streams
+
+  # ============================================
+  # VOLUME CONTROL
+  # ============================================
+  - type: grid
+    title: 🔊 Volume
+    columns: 2
+    cards:
+      - type: entities
+        title: USB-C Dock Volume
+        entities:
+          - entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+            type: custom:slider-entity-row
+            full_row: true
+
+      - type: entities
+        title: John Paulacton Volume
+        entities:
+          - entity: media_player.john_paulacton_ii
+            type: custom:slider-entity-row
+            full_row: true
+
+      # Add more volume controls as needed
+
+# ============================================
+# OPTIONAL: Create these scripts for easier Bluetooth control
+# ============================================
+# Add to configuration.yaml:
+#
+# script:
+#   connect_john_paulacton:
+#     alias: Connect John Paulacton II
+#     sequence:
+#       - service: linux_audio_server.bluetooth_connect_and_set_default
+#         data:
+#           address: "54:B7:E5:89:E6:E3"
+#
+#   disconnect_john_paulacton:
+#     alias: Disconnect John Paulacton II
+#     sequence:
+#       - service: linux_audio_server.bluetooth_disconnect
+#         data:
+#           address: "54:B7:E5:89:E6:E3"

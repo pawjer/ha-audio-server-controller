@@ -1,0 +1,333 @@
+# Linux Audio Server - Media Dashboard
+# Copy this to your Home Assistant dashboard configuration
+
+title: Audio Control
+type: sections
+
+sections:
+  # ============================================
+  # SECTION 1: NOW PLAYING
+  # ============================================
+  - type: grid
+    title: Now Playing
+    cards:
+      # All media player entities - auto-discovers your sinks
+      - type: entities
+        title: Active Speakers
+        show_header_toggle: false
+        state_color: true
+        entities:
+          # Replace these with your actual entity IDs
+          - entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+            type: custom:mini-media-player
+            icon: mdi:speaker
+            hide:
+              power: true
+              source: true
+              controls: false
+            show_state: true
+          - entity: media_player.john_paulacton_ii
+            type: custom:mini-media-player
+            icon: mdi:bluetooth-audio
+            hide:
+              power: false  # Show power button for Bluetooth
+              source: true
+          # Add more media players as needed
+
+      # Compact view for all speakers
+      - type: custom:auto-entities
+        card:
+          type: glance
+          title: Speaker Status
+          show_state: false
+          state_color: true
+        filter:
+          include:
+            - domain: media_player
+              integration: linux_audio_server
+              options:
+                tap_action:
+                  action: more-info
+        sort:
+          method: state
+          reverse: false
+
+  # ============================================
+  # SECTION 2: QUICK CONTROLS
+  # ============================================
+  - type: grid
+    title: Quick Controls
+    columns: 3
+    cards:
+      # Radio station selector
+      - type: entities
+        title: 📻 Radio
+        entities:
+          - entity: select.radio_stations
+            name: Select Station
+          - type: button
+            name: Play Radio
+            icon: mdi:play
+            tap_action:
+              action: call-service
+              service: linux_audio_server.play_radio_stream
+              data:
+                name: "{{ states('select.radio_stations') }}"
+
+      # Bluetooth quick actions
+      - type: entities
+        title: 🔵 Bluetooth
+        entities:
+          - type: button
+            name: Scan for Devices
+            icon: mdi:bluetooth-connect
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_scan
+              data:
+                duration: 10
+          - type: divider
+          # Bluetooth device trackers
+          - entity: device_tracker.john_paulacton_ii
+            name: John Paulacton II
+            secondary_info: last-changed
+          # Add more device trackers
+
+      # Multi-player info
+      - type: entities
+        title: 🎵 Players
+        entities:
+          - entity: sensor.mopidy_players
+            name: Active Players
+
+  # ============================================
+  # SECTION 3: MEDIA PLAYERS (DETAILED)
+  # ============================================
+  - type: grid
+    title: Media Players
+    columns: 2
+    cards:
+      # USB-C Dock detailed control
+      - type: custom:mini-media-player
+        entity: media_player.usb_c_dual_4k_dock_analogowe_stereo
+        name: USB-C Dual-4K Dock
+        icon: mdi:speaker
+        artwork: cover
+        show_source: false
+        hide:
+          power: true
+        volume_stateless: false
+        tap_action:
+          action: more-info
+
+      # Bluetooth speaker detailed control
+      - type: custom:mini-media-player
+        entity: media_player.john_paulacton_ii
+        name: John Paulacton II
+        icon: mdi:bluetooth-audio
+        artwork: cover
+        show_source: false
+        volume_stateless: false
+        tap_action:
+          action: more-info
+
+      # Auto-add all other media players
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 2
+        filter:
+          include:
+            - domain: media_player
+              integration: linux_audio_server
+              options:
+                type: custom:mini-media-player
+                hide:
+                  source: true
+                artwork: cover
+        sort:
+          method: name
+
+  # ============================================
+  # SECTION 4: RADIO MANAGEMENT
+  # ============================================
+  - type: grid
+    title: Radio Stations
+    columns: 1
+    cards:
+      # Radio browser with all stations
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 3
+          square: false
+        filter:
+          include:
+            - entity_id: select.radio_stations
+          template: |
+            {% for station in state_attr('select.radio_stations', 'options') %}
+            {{
+              {
+                'type': 'button',
+                'name': station,
+                'icon': 'mdi:radio',
+                'tap_action': {
+                  'action': 'call-service',
+                  'service': 'linux_audio_server.play_radio_stream',
+                  'data': {'name': station}
+                }
+              }
+            }},
+            {% endfor %}
+
+      # Add new radio station
+      - type: entities
+        title: ➕ Add Radio Station
+        entities:
+          - type: custom:text-input-row
+            entity: input_text.radio_name
+            name: Station Name
+          - type: custom:text-input-row
+            entity: input_text.radio_url
+            name: Stream URL
+          - type: button
+            name: Add Station
+            icon: mdi:plus-circle
+            tap_action:
+              action: call-service
+              service: linux_audio_server.add_radio_stream
+              data:
+                name: "{{ states('input_text.radio_name') }}"
+                url: "{{ states('input_text.radio_url') }}"
+
+  # ============================================
+  # SECTION 5: BLUETOOTH DEVICES
+  # ============================================
+  - type: grid
+    title: Bluetooth Devices
+    columns: 1
+    cards:
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Paired Devices
+          state_color: true
+        filter:
+          include:
+            - domain: device_tracker
+              integration: linux_audio_server
+              options:
+                type: custom:multiple-entity-row
+                secondary_info: last-changed
+                entities:
+                  - entity: this.entity_id
+                    name: false
+                    tap_action:
+                      action: none
+                tap_action:
+                  action: call-service
+                  service: linux_audio_server.bluetooth_connect
+                  data:
+                    address: "{{ state_attr(config.entity, 'address') }}"
+                hold_action:
+                  action: call-service
+                  service: linux_audio_server.bluetooth_disconnect
+                  data:
+                    address: "{{ state_attr(config.entity, 'address') }}"
+        sort:
+          method: state
+          reverse: true
+
+  # ============================================
+  # SECTION 6: ADVANCED CONTROLS
+  # ============================================
+  - type: grid
+    title: Advanced
+    columns: 2
+    cards:
+      # Multi-room controls
+      - type: entities
+        title: 🏠 Multi-Room
+        entities:
+          - type: button
+            name: Pause All
+            icon: mdi:pause-circle
+            tap_action:
+              action: call-service
+              service: linux_audio_server.pause_all
+          - type: button
+            name: Stop All
+            icon: mdi:stop-circle
+            tap_action:
+              action: call-service
+              service: linux_audio_server.stop_all
+          - type: divider
+          - type: button
+            name: Follow Me (Move to Current Room)
+            icon: mdi:account-arrow-right
+            tap_action:
+              action: call-service
+              service: linux_audio_server.move_all_streams
+              data:
+                sink: "{{ states('input_select.default_sink') }}"
+
+      # Stream management
+      - type: entities
+        title: 🔊 Streams
+        entities:
+          - entity: sensor.active_streams
+            name: Active Streams
+          - type: button
+            name: View Stream Details
+            icon: mdi:information
+            tap_action:
+              action: more-info
+              entity: sensor.active_streams
+
+      # TTS settings
+      - type: entities
+        title: 🗣️ Text-to-Speech
+        entities:
+          - type: button
+            name: Configure TTS Speaker
+            icon: mdi:microphone-settings
+            tap_action:
+              action: call-service
+              service: linux_audio_server.get_tts_settings
+
+      # Bluetooth keep-alive
+      - type: entities
+        title: ⏱️ Keep-Alive
+        entities:
+          - type: button
+            name: Start Keep-Alive
+            icon: mdi:heart-pulse
+            tap_action:
+              action: call-service
+              service: linux_audio_server.keep_alive_start
+          - type: button
+            name: Stop Keep-Alive
+            icon: mdi:heart-off
+            tap_action:
+              action: call-service
+              service: linux_audio_server.keep_alive_stop
+
+# ============================================
+# HELPER ENTITIES (Create these in Configuration > Helpers)
+# ============================================
+# You'll need to create these input helpers:
+#
+# input_text.radio_name:
+#   name: Radio Station Name
+#   max: 100
+#
+# input_text.radio_url:
+#   name: Radio Stream URL
+#   max: 500
+#
+# input_select.default_sink:
+#   name: Default Audio Sink
+#   options:
+#     - USB-C Dual-4K Dock Analogowe stereo
+#     - John Paulacton II
+#     # Add all your sinks
