@@ -80,6 +80,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store coordinator
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    # Start WebSocket listener for real-time updates
+    await coordinator.async_start_websocket()
+    _LOGGER.info("WebSocket listener started for real-time state updates")
+
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -798,6 +802,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    # Stop WebSocket listener
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    await coordinator.async_stop_websocket()
+    _LOGGER.info("WebSocket listener stopped")
+
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 

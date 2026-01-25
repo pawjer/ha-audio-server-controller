@@ -358,6 +358,33 @@ class LinuxAudioServerApiClient:
         """Assign a specific player to a sink."""
         return await self._request("POST", "/api/players/assign", {"player": player_name, "sink": sink_name})
 
+    async def connect_websocket(self, on_message_callback):
+        """Connect to WebSocket event stream for real-time updates."""
+        ws_url = f"ws://{self._host}:{self._port}/api/events/ws"
+        _LOGGER.info(f"Connecting to WebSocket: {ws_url}")
+
+        try:
+            async with self._session.ws_connect(ws_url) as ws:
+                _LOGGER.info("WebSocket connected successfully")
+
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        try:
+                            data = json.loads(msg.data)
+                            await on_message_callback(data)
+                        except json.JSONDecodeError as e:
+                            _LOGGER.error(f"Failed to parse WebSocket message: {e}")
+                    elif msg.type == aiohttp.WSMsgType.ERROR:
+                        _LOGGER.error(f"WebSocket error: {ws.exception()}")
+                        break
+                    elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.CLOSING):
+                        _LOGGER.warning("WebSocket connection closed")
+                        break
+
+        except aiohttp.ClientError as e:
+            _LOGGER.error(f"WebSocket connection error: {e}")
+            raise ApiClientError(f"WebSocket connection failed: {e}") from e
+
 
 class ApiClientError(Exception):
     """Exception raised for API client errors."""

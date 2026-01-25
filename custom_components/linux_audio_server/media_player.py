@@ -235,22 +235,40 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         """Get the player actually routing audio to this sink (ground truth from sink-inputs)."""
         sink_inputs = self.coordinator.data.get("sink_inputs", [])
 
+        _LOGGER.debug(
+            "[%s] Checking sink-inputs for active player. Total sink_inputs: %d",
+            self._sink_name,
+            len(sink_inputs)
+        )
+
         # Look for Mopidy sink-inputs routing to this sink
         for sink_input in sink_inputs:
             if sink_input.get("sink") == self._sink_name:
                 app_name = sink_input.get("name", "")
+                _LOGGER.debug(
+                    "[%s] Found sink-input: name='%s', sink='%s'",
+                    self._sink_name,
+                    app_name,
+                    sink_input.get("sink")
+                )
                 # Match "Mopidy Player 2@unix:/run/pulse/native" -> "player2"
                 # Match "Mopidy Player 1 (TTS)@unix:/run/pulse/native" -> "player1"
                 if "Mopidy Player" in app_name:
                     # Extract player number
                     if "Player 1" in app_name:
+                        _LOGGER.debug("[%s] Active player from sink-input: player1", self._sink_name)
                         return "player1"
                     elif "Player 2" in app_name:
+                        _LOGGER.debug("[%s] Active player from sink-input: player2", self._sink_name)
                         return "player2"
                     elif "Player 3" in app_name:
+                        _LOGGER.debug("[%s] Active player from sink-input: player3", self._sink_name)
                         return "player3"
                     elif "Player 4" in app_name:
+                        _LOGGER.debug("[%s] Active player from sink-input: player4", self._sink_name)
                         return "player4"
+
+        _LOGGER.debug("[%s] No active player found in sink-inputs", self._sink_name)
         return None
 
     def _get_assigned_player_track(self) -> dict[str, Any] | None:
@@ -287,6 +305,8 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if sink is None:
             return MediaPlayerState.OFF
 
+        _LOGGER.debug("[%s] === Determining state ===", self._sink_name)
+
         # For multi-player setups, check which player is ACTUALLY routing audio to this sink
         # This is the ground truth from sink-inputs, not just assignments which can be stale
         active_player = self._get_active_player_for_sink()
@@ -294,20 +314,43 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if active_player:
             # Get the state of the active player
             players = self.coordinator.data.get("players", [])
+            _LOGGER.debug(
+                "[%s] Priority 1: Active player from sink-inputs: %s, total players: %d",
+                self._sink_name,
+                active_player,
+                len(players)
+            )
             for player in players:
                 if player.get("id") == active_player:
                     player_state = player.get("state")
+                    _LOGGER.debug(
+                        "[%s] Found active player %s with state: %s",
+                        self._sink_name,
+                        active_player,
+                        player_state
+                    )
                     if player_state == "playing":
+                        _LOGGER.debug("[%s] Returning PLAYING from active player", self._sink_name)
                         return MediaPlayerState.PLAYING
                     elif player_state == "paused":
+                        _LOGGER.debug("[%s] Returning PAUSED from active player", self._sink_name)
                         return MediaPlayerState.PAUSED
                     elif player_state == "stopped":
+                        _LOGGER.debug("[%s] Returning IDLE from active player (stopped)", self._sink_name)
                         return MediaPlayerState.IDLE
                     break
+        else:
+            _LOGGER.debug("[%s] Priority 1: No active player found in sink-inputs", self._sink_name)
 
         # Fallback: check player assignments (might be stale but better than nothing)
         player_assignments = self.coordinator.data.get("player_assignments", {})
         assigned_player = player_assignments.get(self._sink_name)
+
+        _LOGGER.debug(
+            "[%s] Priority 2: Checking player assignments. Assigned player: %s",
+            self._sink_name,
+            assigned_player
+        )
 
         if assigned_player:
             # Get the state of the assigned player
@@ -315,11 +358,20 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             for player in players:
                 if player.get("id") == assigned_player:
                     player_state = player.get("state")
+                    _LOGGER.debug(
+                        "[%s] Found assigned player %s with state: %s",
+                        self._sink_name,
+                        assigned_player,
+                        player_state
+                    )
                     if player_state == "playing":
+                        _LOGGER.debug("[%s] Returning PLAYING from assigned player", self._sink_name)
                         return MediaPlayerState.PLAYING
                     elif player_state == "paused":
+                        _LOGGER.debug("[%s] Returning PAUSED from assigned player", self._sink_name)
                         return MediaPlayerState.PAUSED
                     elif player_state == "stopped":
+                        _LOGGER.debug("[%s] Returning IDLE from assigned player (stopped)", self._sink_name)
                         return MediaPlayerState.IDLE
                     break
 
@@ -327,20 +379,38 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         playback = self.coordinator.data.get("playback", {})
         playback_state = playback.get("state")
 
+        _LOGGER.debug(
+            "[%s] Priority 3: Checking global playback state: %s",
+            self._sink_name,
+            playback_state
+        )
+
         if playback_state == "playing":
+            _LOGGER.debug("[%s] Returning PLAYING from global playback", self._sink_name)
             return MediaPlayerState.PLAYING
         elif playback_state == "paused":
+            _LOGGER.debug("[%s] Returning PAUSED from global playback", self._sink_name)
             return MediaPlayerState.PAUSED
         elif playback_state == "stopped":
+            _LOGGER.debug("[%s] Returning IDLE from global playback (stopped)", self._sink_name)
             return MediaPlayerState.IDLE
 
         # Fallback to sink state if no playback info
         pa_state = sink.get("state", "IDLE")
+        _LOGGER.debug(
+            "[%s] Priority 4: Falling back to PulseAudio sink state: %s",
+            self._sink_name,
+            pa_state
+        )
+
         if pa_state == "RUNNING":
+            _LOGGER.debug("[%s] Returning ON from PA sink state", self._sink_name)
             return MediaPlayerState.ON
         elif pa_state in ("IDLE", "SUSPENDED"):
+            _LOGGER.debug("[%s] Returning IDLE from PA sink state", self._sink_name)
             return MediaPlayerState.IDLE
         else:
+            _LOGGER.debug("[%s] Returning OFF from PA sink state", self._sink_name)
             return MediaPlayerState.OFF
 
     @property
