@@ -13,6 +13,7 @@ from aiohttp import ClientError
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 10
+BLUETOOTH_TIMEOUT = 30  # Bluetooth operations can take longer
 
 
 class LinuxAudioServerApiClient:
@@ -35,12 +36,13 @@ class LinuxAudioServerApiClient:
         method: str,
         endpoint: str,
         data: dict[str, Any] | None = None,
+        timeout: float = DEFAULT_TIMEOUT,
     ) -> dict[str, Any]:
         """Make a request to the API."""
         url = f"{self._base_url}{endpoint}"
 
         try:
-            async with asyncio.timeout(DEFAULT_TIMEOUT):
+            async with asyncio.timeout(timeout):
                 if method == "GET":
                     async with self._session.get(url) as response:
                         response.raise_for_status()
@@ -288,11 +290,11 @@ class LinuxAudioServerApiClient:
 
     async def pair_bluetooth(self, address: str) -> dict[str, Any]:
         """Pair with a Bluetooth device."""
-        return await self._request("POST", "/api/bluetooth/pair", {"address": address})
+        return await self._request("POST", "/api/bluetooth/pair", {"address": address}, timeout=BLUETOOTH_TIMEOUT)
 
     async def connect_bluetooth(self, address: str) -> dict[str, Any]:
         """Connect to a Bluetooth device."""
-        return await self._request("POST", "/api/bluetooth/connect", {"address": address})
+        return await self._request("POST", "/api/bluetooth/connect", {"address": address}, timeout=BLUETOOTH_TIMEOUT)
 
     async def disconnect_bluetooth(self, address: str) -> dict[str, Any]:
         """Disconnect from a Bluetooth device."""
@@ -300,7 +302,7 @@ class LinuxAudioServerApiClient:
 
     async def connect_and_set_default_bluetooth(self, address: str) -> dict[str, Any]:
         """Connect to Bluetooth device and set as default output."""
-        return await self._request("POST", "/api/bluetooth/connect-and-set-default", {"address": address})
+        return await self._request("POST", "/api/bluetooth/connect-and-set-default", {"address": address}, timeout=BLUETOOTH_TIMEOUT)
 
     # TTS endpoints
     async def speak_tts(self, message: str, language: str = "en", sinks: list[str] | None = None) -> dict[str, Any]:

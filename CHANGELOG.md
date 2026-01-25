@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.9] - 2026-01-25
+
+### Added
+- **Source routing selectors** - Route Airplay, Spotify, and TTS to any sink
+  - `select.airplay_output` - Choose where Airplay audio plays
+  - `select.spotify_output` - Choose where Spotify audio plays
+  - `select.tts_output` - Choose where TTS audio plays
+- **Source volume controls** - Individual volume control for each audio source
+  - `number.airplay_volume` - Airplay volume slider (0-100%)
+  - `number.spotify_volume` - Spotify volume slider (0-100%)
+  - `number.tts_volume` - TTS volume slider (0-100%)
+- Number platform for volume slider entities
+- Smart availability - Source controls only visible when actively streaming
+
+### Changed
+- Increased Bluetooth operation timeout from 10s to 30s
+- Dashboard Bluetooth buttons now use `bluetooth_connect` instead of `bluetooth_connect_and_set_default`
+- More consistent with media player turn_on behavior (doesn't force default sink change)
+
+### Fixed
+- Bluetooth connection timeout errors for slow-to-connect devices
+- Combined sinks now work correctly (already included in regular sinks list from backend)
+
+### Technical
+- Added `SourceSinkRouterSelect` base class for routing audio sources
+- Added `SourceVolumeNumber` base class for source volume control
+- Source identifiers: Airplay = "Shairport Sync", TTS = "Mopidy Player 1 (TTS)", Spotify = "librespot"
+- Uses `move_stream` API for routing, `set_stream_volume` API for volume control
+- All source entities attached to integration device (not sink-specific)
+
 ## [0.6.8] - 2026-01-25
 
 ### Added

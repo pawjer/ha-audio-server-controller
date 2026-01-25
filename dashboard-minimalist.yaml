@@ -53,7 +53,9 @@ sections:
             action_name: Connect
             tap_action:
               action: call-service
-              service: linux_audio_server.bluetooth_connect_and_set_default
+              service: linux_audio_server.bluetooth_connect
+              # Note: Use bluetooth_connect_and_set_default if you want to
+              # automatically make this the default output after connecting
               data:
                 address: "54:B7:E5:89:E6:E3"
           - type: button

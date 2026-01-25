@@ -55,6 +55,7 @@ PLATFORMS: list[Platform] = [
     Platform.SELECT,
     Platform.BUTTON,
     Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
 ]
 
 

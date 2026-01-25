@@ -81,7 +81,7 @@ sections:
             secondary_info: last-changed
             tap_action:
               action: call-service
-              service: linux_audio_server.bluetooth_connect_and_set_default
+              service: linux_audio_server.bluetooth_connect
               data:
                 address: "54:B7:E5:89:E6:E3"
             hold_action:

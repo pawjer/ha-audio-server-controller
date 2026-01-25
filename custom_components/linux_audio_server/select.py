@@ -33,6 +33,11 @@ async def async_setup_entry(
     for sink in coordinator.data.get("sinks", []):
         entities.append(SinkRadioStationSelect(coordinator, entry, sink))
 
+    # Create source routing selectors (Airplay, TTS, Spotify)
+    entities.append(AirplaySinkSelect(coordinator, entry))
+    entities.append(TTSSinkSelect(coordinator, entry))
+    entities.append(SpotifySinkSelect(coordinator, entry))
+
     async_add_entities(entities)
 
     # Set up a listener to add selectors for new sinks dynamically
@@ -222,3 +227,139 @@ class SinkRadioStationSelect(CoordinatorEntity, SelectEntity):
                 self._sink_name,
                 err,
             )
+
+
+class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
+    """Base class for routing audio sources to sinks."""
+
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:speaker-wireless"
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+        source_name: str,
+        source_identifier: str,
+    ) -> None:
+        """Initialize the source router select entity."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._source_name = source_name
+        self._source_identifier = source_identifier
+        self._attr_unique_id = f"{entry.entry_id}_{source_name.lower().replace(' ', '_')}_sink_router"
+        self._attr_name = f"{source_name} Output"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "Linux Audio Server",
+            "manufacturer": "Linux Audio Server",
+            "model": "Audio Controller",
+        }
+
+    def _find_sink_input(self) -> dict[str, Any] | None:
+        """Find the sink-input for this source."""
+        sink_inputs = self.coordinator.data.get("sink_inputs", [])
+        for sink_input in sink_inputs:
+            if self._source_identifier in sink_input.get("name", ""):
+                return sink_input
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available (source is active)."""
+        return self.coordinator.last_update_success and self._find_sink_input() is not None
+
+    @property
+    def options(self) -> list[str]:
+        """Return list of available sink descriptions."""
+        sinks = self.coordinator.data.get("sinks", [])
+        return [sink.get("description", sink["name"]) for sink in sinks]
+
+    @property
+    def current_option(self) -> str | None:
+        """Return currently selected sink description."""
+        sink_input = self._find_sink_input()
+        if not sink_input:
+            return None
+
+        return sink_input.get("sink_description")
+
+    async def async_select_option(self, option: str) -> None:
+        """Route source to the selected sink."""
+        try:
+            # Find the sink-input
+            sink_input = self._find_sink_input()
+            if not sink_input:
+                _LOGGER.warning("Cannot route %s: source not active", self._source_name)
+                return
+
+            # Find the sink by description
+            sinks = self.coordinator.data.get("sinks", [])
+            target_sink = None
+            for sink in sinks:
+                if sink.get("description", sink["name"]) == option:
+                    target_sink = sink["name"]
+                    break
+
+            if not target_sink:
+                _LOGGER.error("Cannot find sink with description: %s", option)
+                return
+
+            # Move the stream
+            _LOGGER.info("Moving %s to sink: %s", self._source_name, target_sink)
+            await self.coordinator.client.move_stream(
+                sink_input["index"],
+                target_sink
+            )
+            await self.coordinator.async_request_refresh()
+
+        except Exception as err:
+            _LOGGER.error(
+                "Failed to route %s to sink %s: %s",
+                self._source_name,
+                option,
+                err,
+            )
+
+
+class AirplaySinkSelect(SourceSinkRouterSelect):
+    """Select entity for routing Airplay to different sinks."""
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize Airplay sink router."""
+        super().__init__(coordinator, entry, "Airplay", "Shairport Sync")
+        self._attr_icon = "mdi:cast-audio"
+
+
+class TTSSinkSelect(SourceSinkRouterSelect):
+    """Select entity for routing TTS to different sinks."""
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize TTS sink router."""
+        super().__init__(coordinator, entry, "TTS", "Mopidy Player 1 (TTS)")
+        self._attr_icon = "mdi:text-to-speech"
+
+
+class SpotifySinkSelect(SourceSinkRouterSelect):
+    """Select entity for routing Spotify to different sinks."""
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize Spotify sink router."""
+        super().__init__(coordinator, entry, "Spotify", "librespot")
+        self._attr_icon = "mdi:spotify"
