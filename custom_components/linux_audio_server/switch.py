@@ -50,7 +50,7 @@ async def async_setup_entry(
 class DefaultSinkSwitch(CoordinatorEntity, SwitchEntity):
     """Switch to set a sink as the default."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
     def __init__(
         self,

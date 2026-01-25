@@ -111,7 +111,7 @@ async def async_setup_entry(
 class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     """Representation of an audio sink as a media player."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
 
     def __init__(
