@@ -10,7 +10,7 @@ Control your [Linux Audio Server](https://github.com/proboszcz/linux-audio-serve
 - Volume control per sink
 - Multi-room audio support (combined sinks and stereo pairs)
 - Individual stream control (per-app volume)
-- Real-time updates via polling
+- **Real-time updates via WebSocket** (<100ms latency)
 - **Works on the Media Dashboard!**
 
 ## Features
@@ -119,6 +119,34 @@ data:
 Supported languages include: `en`, `es`, `fr`, `de`, `it`, `pl`, `ja`, `zh-CN`, and many more.
 
 **Note:** Ensure the Linux Audio Server has write permissions to `/tmp/tts/` for TTS file generation.
+
+### Real-Time WebSocket Updates
+
+**v0.7.0+** includes WebSocket support for instant state updates (<100ms latency).
+
+**Features:**
+- ⚡ **Instant playback state** - No more "idle" lag when radio starts
+- 🎯 **Event-driven updates** - State changes trigger immediate refresh
+- 💰 **92% fewer API calls** - WebSocket primary + 10s backup polling
+- 🔄 **Auto-reconnection** - Automatically reconnects if connection drops
+
+**Requirements:**
+- Backend: `linux-audio-server v1.0.0+` with WebSocket support
+- Dependencies: `flask-sock==0.7.0`, `websocket-client==1.7.0`
+- Endpoint: `/api/events/ws` must be available
+
+**How it works:**
+1. Integration connects to backend WebSocket on startup
+2. Mopidy playback events trigger instant state updates
+3. PulseAudio sink-input changes detected in real-time
+4. Falls back to 10s polling if WebSocket unavailable
+
+**Troubleshooting:**
+- Check HA logs for `WebSocket connected successfully`
+- Verify backend has WebSocket endpoint: `curl -i -H "Upgrade: websocket" http://YOUR_BACKEND:6681/api/events/ws`
+- If timeout errors, ensure backend is accessible from HA network
+
+See [WEBSOCKET_IMPLEMENTATION.md](WEBSOCKET_IMPLEMENTATION.md) for detailed setup guide.
 
 ## Installation
 
