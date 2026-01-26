@@ -181,29 +181,48 @@ The integration will automatically discover all available audio sinks and create
 
 ## Dashboards
 
-We provide **4 ready-to-use dashboard configurations** to get you started:
+We provide **6 dashboard configurations** to suit different needs:
 
-1. **[Minimalist Dashboard](DASHBOARD_MINIMALIST.md)** (`dashboard-minimalist.yaml`) ⭐ **Recommended**
+### Modern Multi-Room (YAMP) 🆕
+
+1. **[YAMP Dashboard](DASHBOARD_YAMP.md)** (`dashboard-yamp.yaml`) ⭐⭐ **Recommended for Multi-Room**
+   - All rooms in one card with quick chip switching
+   - Modern, collapsible UI that adapts to mobile/desktop
+   - Custom action buttons for player assignment
+   - Radio station quick access tiles
+   - Requires: [YAMP](https://github.com/jianyu-li/yet-another-media-player) from HACS
+   - **Best UX for controlling multiple rooms**
+
+2. **[YAMP Advanced](DASHBOARD_YAMP.md)** (`dashboard-yamp-advanced.yaml`)
+   - Enhanced player routing visualization
+   - Real-time status with Mushroom cards
+   - Confirmation dialogs, audio scenes support
+   - Requires: YAMP + Mushroom cards from HACS
+   - **For power users wanting premium UX**
+
+### Traditional Dashboards
+
+3. **[Minimalist Dashboard](DASHBOARD_MINIMALIST.md)** (`dashboard-minimalist.yaml`) ⭐ **Easiest Setup**
    - Clean per-sink control with auto-populated radio dropdowns
    - Each speaker in one box with all controls
    - **Zero configuration** - radio selectors auto-created
    - No custom cards required
-   - Perfect for most users
+   - Perfect for simple setups
 
-2. **Full Dashboard** (`dashboard-example.yaml`)
+4. **Full Dashboard** (`dashboard-example.yaml`)
    - Power user features with auto-discovery
    - Inline radio station management
    - Requires HACS custom cards
 
-3. **Simple Dashboard** (`dashboard-simple.yaml`)
+5. **Simple Dashboard** (`dashboard-simple.yaml`)
    - All features, no custom cards
    - Manual configuration
 
-4. **Mobile Dashboard** (`dashboard-mobile.yaml`)
+6. **Mobile Dashboard** (`dashboard-mobile.yaml`)
    - Optimized for phones
    - Quick access controls
 
-📖 **See [DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md) for detailed setup instructions**
+📖 **See [DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md) or [DASHBOARD_YAMP.md](DASHBOARD_YAMP.md) for detailed setup instructions**
 
 ## Usage
 

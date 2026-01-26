@@ -194,6 +194,13 @@ play_radio_stream:
       example: "Jazz FM"
       selector:
         text:
+    sink:
+      name: Sink
+      description: Audio sink to play on (optional - uses default if not specified)
+      required: false
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
 
 play_radio_url:
   name: Play Radio URL

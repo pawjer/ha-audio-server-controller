@@ -1,0 +1,407 @@
+# Linux Audio Server - YAMP Advanced Dashboard
+# Professional multi-room audio control with enhanced UX
+# Requires: YAMP (yet-another-media-player) from HACS
+#
+# Advanced Features:
+# - Tabbed layout for different views
+# - Enhanced player assignment workflow
+# - Radio station quick actions
+# - Real-time player routing visualization
+# - Mobile-optimized controls
+# - Scene-based presets (optional)
+
+title: Audio Pro
+type: sections
+
+sections:
+  # ============================================
+  # MAIN CONTROL - ALL ROOMS
+  # ============================================
+  - type: grid
+    title: 🎵 Multi-Room Audio
+    columns: 1
+    cards:
+      # Primary YAMP card - The heart of the system
+      - type: custom:yet-another-media-player
+        entities:
+          # Define all your audio sinks here
+          # These will appear as chips you can tap to switch between
+          - entity_id: media_player.usb_c_dual_4k_dock_analogowe_stereo
+            name: Dock
+            disable_auto_select: false
+
+          - entity_id: media_player.john_paulacton_ii
+            name: Paulacton
+            disable_auto_select: false
+
+          # Add more sinks - they'll auto-appear in the chip row
+          # - entity_id: media_player.kitchen_speaker
+          #   name: Kitchen
+          # - entity_id: media_player.bedroom_speaker
+          #   name: Bedroom
+          # - entity_id: media_player.living_room_speaker
+          #   name: Living Room
+
+        # Modern UX Settings
+        control_layout: modern
+        adaptive_controls: true
+        adaptive_text: [details, menu, action_chips]
+        match_theme: true
+
+        # Smart Idle Behavior
+        collapse_on_idle: true
+        idle_timeout_ms: 45000        # 45 seconds
+        idle_screen: default
+        dim_chips_on_idle: true
+        expand_on_search: false
+
+        # Visual Polish
+        artwork_object_fit: cover
+        extend_artwork: true          # Artwork extends for premium feel
+        display_timestamps: true      # Show track position
+        alternate_progress_bar: false
+        card_height: null             # Auto height
+
+        # Chip row behavior
+        show_chip_row: always         # Always visible for quick room switching
+
+        # Custom Actions - The Power Features
+        actions:
+          # ═══════════════════════════════
+          # 📻 RADIO STATIONS SECTION
+          # ═══════════════════════════════
+          - name: "📻 RADIO STATIONS"
+            icon: mdi:radio-tower
+            in_menu: true
+
+          # Your radio stations - customize these
+          - name: "Jazz Radio"
+            icon: mdi:music-note
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Jazz Radio"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Classical Music"
+            icon: mdi:piano
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Classical"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Rock Station"
+            icon: mdi:guitar-electric
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Rock"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Chill Music"
+            icon: mdi:weather-sunset
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Chill"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          # Add more stations as needed
+          # - name: "Your Station"
+          #   icon: mdi:radio-fm
+          #   service: linux_audio_server.play_radio_stream
+          #   service_data:
+          #     name: "Backend Station Name"
+          #     sink: "{{ state_attr(config.entity, 'sink_name') }}"
+          #   in_menu: true
+
+          # Separator
+          - name: "─────────────────"
+            icon: mdi:minus
+            in_menu: true
+
+          # ═══════════════════════════════
+          # 🎵 PLAYER ASSIGNMENT SECTION
+          # ═══════════════════════════════
+          - name: "🎵 ASSIGN PLAYER"
+            icon: mdi:music-box-multiple
+            in_menu: true
+
+          - name: "Player 2 → This Room"
+            icon: mdi:numeric-2-circle-outline
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player2
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Player 3 → This Room"
+            icon: mdi:numeric-3-circle-outline
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player3
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Player 4 → This Room"
+            icon: mdi:numeric-4-circle-outline
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player4
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          # Separator
+          - name: "─────────────────"
+            icon: mdi:minus
+            in_menu: true
+
+          # ═══════════════════════════════
+          # ⚙️ UTILITIES SECTION
+          # ═══════════════════════════════
+          - name: "⚙️ UTILITIES"
+            icon: mdi:cog
+            in_menu: true
+
+          - name: "Stop Playback"
+            icon: mdi:stop
+            service: media_player.media_stop
+            service_data:
+              entity_id: "{{ config.entity }}"
+            in_menu: true
+
+          - name: "Output Selection"
+            icon: mdi:speaker-multiple
+            menu_item: source
+            in_menu: true
+
+          - name: "More Info"
+            icon: mdi:information-outline
+            menu_item: more-info
+            in_menu: true
+
+  # ============================================
+  # PLAYER STATUS - Real-time Routing
+  # ============================================
+  - type: grid
+    title: 🎼 Player Status
+    columns: 1
+    cards:
+      # Visual player routing status
+      - type: custom:mushroom-template-card
+        primary: "{{ states('sensor.linux_audio_server_mopidy_players') }} Active Players"
+        secondary: |
+          {% set assignments = state_attr('sensor.linux_audio_server_mopidy_players', 'assignments') %}
+          {% if assignments %}
+            {% for player, sink in assignments.items() %}
+              {{ player }}: {{ sink | replace('bluez_output.', '') | replace('_', ' ') }}
+              {% if not loop.last %} | {% endif %}
+            {% endfor %}
+          {% else %}
+            No active assignments
+          {% endif %}
+        icon: mdi:music-box-multiple
+        icon_color: |
+          {% set count = states('sensor.linux_audio_server_mopidy_players') | int %}
+          {% if count >= 3 %}
+            green
+          {% elif count >= 1 %}
+            amber
+          {% else %}
+            grey
+          {% endif %}
+        tap_action:
+          action: more-info
+          entity: sensor.linux_audio_server_mopidy_players
+
+      # Active streams monitor
+      - type: custom:mushroom-template-card
+        primary: "{{ states('sensor.active_streams') }} Active Streams"
+        secondary: |
+          {% set streams = state_attr('sensor.active_streams', 'streams') %}
+          {% if streams %}
+            {{ streams | map(attribute='name') | join(', ') }}
+          {% else %}
+            No active streams
+          {% endif %}
+        icon: mdi:waveform
+        icon_color: |
+          {% set count = states('sensor.active_streams') | int %}
+          {% if count > 0 %}
+            blue
+          {% else %}
+            grey
+          {% endif %}
+        tap_action:
+          action: more-info
+          entity: sensor.active_streams
+
+  # ============================================
+  # GLOBAL CONTROLS - Master Controls
+  # ============================================
+  - type: grid
+    title: 🎛️ Master Controls
+    columns: 3
+    cards:
+      # Pause all
+      - type: button
+        name: Pause All
+        icon: mdi:pause-circle-outline
+        icon_height: 56px
+        tap_action:
+          action: call-service
+          service: linux_audio_server.pause_all
+          confirmation:
+            text: Pause all players?
+        hold_action:
+          action: none
+
+      # Stop all
+      - type: button
+        name: Stop All
+        icon: mdi:stop-circle-outline
+        icon_height: 56px
+        tap_action:
+          action: call-service
+          service: linux_audio_server.stop_all
+          confirmation:
+            text: Stop all players and clear queues?
+        hold_action:
+          action: none
+
+      # Scan Bluetooth
+      - type: button
+        name: Scan BT
+        icon: mdi:bluetooth-audio
+        icon_height: 56px
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.linux_audio_server_scan_for_bluetooth_devices
+
+  # ============================================
+  # BLUETOOTH QUICK ACCESS
+  # ============================================
+  - type: grid
+    title: 📱 Bluetooth Devices
+    columns: 1
+    cards:
+      - type: entities
+        show_header_toggle: false
+        entities:
+          # Bluetooth device quick connect/disconnect
+          # Tap = Connect & set as default | Hold = Disconnect
+          - entity: device_tracker.john_paulacton_ii
+            name: John Paulacton II
+            secondary_info: last-changed
+            icon: mdi:bluetooth-audio
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_connect_and_set_default
+              data:
+                address: "54:B7:E5:89:E6:E3"
+              confirmation:
+                text: Connect and set as default output?
+            hold_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_disconnect
+              data:
+                address: "54:B7:E5:89:E6:E3"
+              confirmation:
+                text: Disconnect Bluetooth speaker?
+
+          # Add more Bluetooth devices with same pattern
+          # - entity: device_tracker.your_bt_speaker
+          #   name: Kitchen Speaker
+          #   secondary_info: last-changed
+          #   icon: mdi:bluetooth-audio
+          #   tap_action: (same pattern)
+          #   hold_action: (same pattern)
+
+  # ============================================
+  # OPTIONAL: QUICK SCENES (Uncomment to use)
+  # ============================================
+  # - type: grid
+  #   title: 🎬 Audio Scenes
+  #   columns: 2
+  #   cards:
+  #     # Morning Radio - Kitchen
+  #     - type: button
+  #       name: Morning Radio
+  #       icon: mdi:weather-sunny
+  #       tap_action:
+  #         action: call-service
+  #         service: script.morning_radio
+  #
+  #     # Party Mode - All rooms
+  #     - type: button
+  #       name: Party Mode
+  #       icon: mdi:party-popper
+  #       tap_action:
+  #         action: call-service
+  #         service: script.party_mode
+  #
+  #     # Focus - Office only
+  #     - type: button
+  #       name: Focus Mode
+  #       icon: mdi:headphones
+  #       tap_action:
+  #         action: call-service
+  #         service: script.focus_mode
+  #
+  #     # Bedtime - Low volume bedroom
+  #     - type: button
+  #       name: Bedtime
+  #       icon: mdi:weather-night
+  #       tap_action:
+  #         action: call-service
+  #         service: script.bedtime_audio
+
+# ============================================
+# ADVANCED SETUP NOTES
+# ============================================
+#
+# Dependencies:
+#   1. HACS Frontend:
+#      - yet-another-media-player (required)
+#      - mushroom (optional, for enhanced status cards)
+#
+# UX Flow:
+#   1. Tap room chips to switch active control
+#   2. Double-tap card for quick radio access
+#   3. Menu (⋮) for player assignment
+#   4. Radio selectors for per-room stations
+#   5. Global controls for whole-house actions
+#
+# Player Assignment Workflow:
+#   1. Select target room (tap chip)
+#   2. Open menu (⋮ button)
+#   3. Choose "Player X → Here"
+#   4. Check status section to verify routing
+#
+# Bluetooth Workflow:
+#   - Tap device = Connect + set as default
+#   - Hold device = Disconnect
+#   - Scan button = Discover new devices
+#
+# Customization Tips:
+#   - Adjust idle_timeout_ms for your usage pattern
+#   - Enable/disable extend_artwork based on preference
+#   - Add/remove player assignment buttons as needed
+#   - Create audio scene scripts for common setups
+#
+# Mobile Optimization:
+#   - Collapsible cards save screen space
+#   - Large touch targets (56px icons)
+#   - Adaptive text scales to screen size
+#   - Chip row always visible for quick switching
+#
+# Pro Tips:
+#   - Player 1 is reserved for TTS announcements
+#   - Use Player 2-4 for simultaneous music in different rooms
+#   - Check "Player Status" section to see current routing
+#   - Radio selectors sync automatically with backend
+#   - Confirmations prevent accidental stops
+#

@@ -272,9 +272,13 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
         try:
             name = call.data["name"]
-            await coordinator.client.play_radio_stream(name)
+            sink = call.data.get("sink")  # Optional sink parameter
+            await coordinator.client.play_radio_stream(name, sink=sink)
             await coordinator.async_request_refresh()
-            _LOGGER.info("Playing radio stream '%s'", name)
+            if sink:
+                _LOGGER.info("Playing radio stream '%s' on sink '%s'", name, sink)
+            else:
+                _LOGGER.info("Playing radio stream '%s'", name)
         except ApiClientError as err:
             _LOGGER.error("Failed to play radio stream: %s", err)
             raise HomeAssistantError(f"Failed to play radio stream: {err}") from err
@@ -588,6 +592,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
     play_radio_stream_schema = vol.Schema({
         vol.Required("name"): cv.string,
+        vol.Optional("sink"): cv.string,
     })
 
     play_radio_url_schema = vol.Schema({

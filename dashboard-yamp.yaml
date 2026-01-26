@@ -1,0 +1,324 @@
+# Linux Audio Server - YAMP Dashboard
+# Modern, clean UX for multi-room audio control
+# Requires: YAMP (yet-another-media-player) from HACS
+#
+# Features:
+# - All rooms in one card with quick switching
+# - Radio stations integrated in menu
+# - Player assignment via menu
+# - Player status visibility
+# - Global controls
+# - Clean, collapsible design
+
+title: Audio Control
+type: sections
+
+sections:
+  # ============================================
+  # MAIN AUDIO CONTROL
+  # ============================================
+  - type: grid
+    title: Rooms
+    columns: 1
+    cards:
+      # Main YAMP card - All your audio sinks in one place
+      - type: custom:yet-another-media-player
+        entities:
+          # USB-C Dock
+          - entity_id: media_player.usb_c_dual_4k_dock_analogowe_stereo
+            name: USB-C Dock
+
+          # Bluetooth Speaker
+          - entity_id: media_player.john_paulacton_ii
+            name: John Paulacton II
+
+          # Add more sinks here as they appear
+          # - entity_id: media_player.your_other_sink
+          #   name: Your Speaker Name
+
+        # Layout & Appearance
+        control_layout: modern        # Modern layout with better spacing
+        adaptive_controls: true       # Buttons adapt to available space
+        adaptive_text: true           # Text sizing adapts to screen
+        match_theme: true             # Follow HA accent color
+
+        # Idle behavior
+        collapse_on_idle: true        # Minimize when nothing playing
+        idle_timeout_ms: 30000        # 30 seconds idle timeout
+        idle_screen: default          # Show default screen when idle
+        dim_chips_on_idle: true       # Dim room selector when idle
+
+        # Artwork
+        artwork_object_fit: cover     # Artwork fills the space
+        extend_artwork: false         # Keep artwork in bounds
+
+        # Display options
+        display_timestamps: false     # Hide timestamps for cleaner look
+        show_chip_row: always         # Always show room selector chips
+
+        # Custom action buttons - Radio stations + controls
+        actions:
+          # ═══════════════════════════════
+          # RADIO STATIONS SECTION
+          # ═══════════════════════════════
+          - name: "📻 RADIO STATIONS"
+            icon: mdi:radio
+            in_menu: true
+
+          # Add your radio stations here
+          # Get station names from: Developer Tools → States → sensor attributes
+          # Or from your backend config/bluetooth-api/radio_streams.conf
+
+          - name: "Jazz Radio"
+            icon: mdi:music-note
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Jazz Radio"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Classical Music"
+            icon: mdi:piano
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Classical"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Rock Station"
+            icon: mdi:guitar-electric
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Rock"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Chill Music"
+            icon: mdi:weather-sunset
+            service: linux_audio_server.play_radio_stream
+            service_data:
+              name: "Chill"
+              sink: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          # Add more stations following the same pattern:
+          # - name: "Your Station Name"
+          #   icon: mdi:radio-fm
+          #   service: linux_audio_server.play_radio_stream
+          #   service_data:
+          #     name: "Station Name from Backend"
+          #     sink: "{{ state_attr(config.entity, 'sink_name') }}"
+          #   in_menu: true
+
+          # Separator
+          - name: "─────────────────"
+            icon: mdi:minus
+            in_menu: true
+
+          # ═══════════════════════════════
+          # PLAYER ASSIGNMENT SECTION
+          # ═══════════════════════════════
+          - name: "🎵 ASSIGN PLAYER"
+            icon: mdi:music-box-multiple
+            in_menu: true
+
+          - name: "Player 2 → This Room"
+            icon: mdi:numeric-2-circle
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player2
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Player 3 → This Room"
+            icon: mdi:numeric-3-circle
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player3
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          - name: "Player 4 → This Room"
+            icon: mdi:numeric-4-circle
+            service: linux_audio_server.assign_player
+            service_data:
+              player_name: player4
+              sink_name: "{{ state_attr(config.entity, 'sink_name') }}"
+            in_menu: true
+
+          # Separator
+          - name: "─────────────────"
+            icon: mdi:minus
+            in_menu: true
+
+          # ═══════════════════════════════
+          # UTILITIES SECTION
+          # ═══════════════════════════════
+          - name: "⚙️ UTILITIES"
+            icon: mdi:cog
+            in_menu: true
+
+          - name: "Stop Playback"
+            icon: mdi:stop
+            service: media_player.media_stop
+            service_data:
+              entity_id: "{{ config.entity }}"
+            in_menu: true
+
+          - name: "Output Selection"
+            icon: mdi:speaker-multiple
+            menu_item: source
+            in_menu: true
+
+          - name: "More Info"
+            icon: mdi:information-outline
+            menu_item: more-info
+            in_menu: true
+
+  # ============================================
+  # PLAYER STATUS & ASSIGNMENT
+  # ============================================
+  - type: grid
+    title: Multi-Room Status
+    columns: 2
+    cards:
+      # Active players sensor
+      - type: tile
+        entity: sensor.linux_audio_server_mopidy_players
+        name: Active Players
+        icon: mdi:music-box-multiple
+        vertical: true
+
+      # Active streams
+      - type: tile
+        entity: sensor.active_streams
+        name: Active Streams
+        icon: mdi:waveform
+        vertical: true
+
+      # Player assignments (shows which player is on which sink)
+      - type: entities
+        title: Player Assignments
+        show_header_toggle: false
+        entities:
+          - entity: sensor.linux_audio_server_mopidy_players
+            type: attribute
+            attribute: assignments
+            name: Current Routing
+
+  # ============================================
+  # GLOBAL CONTROLS
+  # ============================================
+  - type: grid
+    title: Global Controls
+    columns: 3
+    cards:
+      # Pause all players
+      - type: button
+        name: Pause All
+        icon: mdi:pause-circle
+        icon_height: 48px
+        tap_action:
+          action: call-service
+          service: linux_audio_server.pause_all
+
+      # Stop all players
+      - type: button
+        name: Stop All
+        icon: mdi:stop-circle
+        icon_height: 48px
+        tap_action:
+          action: call-service
+          service: linux_audio_server.stop_all
+
+      # Scan for Bluetooth devices
+      - type: button
+        name: Scan BT
+        icon: mdi:bluetooth-audio
+        icon_height: 48px
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.linux_audio_server_scan_for_bluetooth_devices
+
+  # ============================================
+  # BLUETOOTH DEVICES
+  # ============================================
+  - type: grid
+    title: Bluetooth Devices
+    columns: 1
+    cards:
+      # Quick connect/disconnect for Bluetooth speakers
+      - type: entities
+        entities:
+          - entity: device_tracker.john_paulacton_ii
+            name: John Paulacton II
+            secondary_info: last-changed
+            tap_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_connect_and_set_default
+              data:
+                address: "54:B7:E5:89:E6:E3"
+            hold_action:
+              action: call-service
+              service: linux_audio_server.bluetooth_disconnect
+              data:
+                address: "54:B7:E5:89:E6:E3"
+
+          # Add more Bluetooth devices here
+          # - entity: device_tracker.your_bt_device
+          #   name: Your BT Speaker
+          #   secondary_info: last-changed
+          #   tap_action:
+          #     action: call-service
+          #     service: linux_audio_server.bluetooth_connect_and_set_default
+          #     data:
+          #       address: "XX:XX:XX:XX:XX:XX"
+          #   hold_action:
+          #     action: call-service
+          #     service: linux_audio_server.bluetooth_disconnect
+          #     data:
+          #       address: "XX:XX:XX:XX:XX:XX"
+
+# ============================================
+# SETUP INSTRUCTIONS
+# ============================================
+#
+# 1. Install YAMP via HACS:
+#    - HACS → Frontend → Search "yet another media player"
+#    - Install and restart Home Assistant
+#
+# 2. Update entity IDs:
+#    - Replace media_player entity IDs with your actual sinks
+#    - Update Bluetooth MAC addresses
+#
+# 3. Add Your Radio Stations:
+#    - Find station names in Developer Tools → States
+#    - Look at radio_streams attribute in coordinator data
+#    - Or check backend: config/bluetooth-api/radio_streams.conf
+#    - Add actions following the pattern in the Radio Stations section
+#
+# 4. Usage:
+#    - Tap room chip to select room
+#    - Tap ⋮ menu button
+#    - Radio stations appear at the top of menu
+#    - Tap station name to play on selected room
+#
+# Pro Tips:
+#   - Radio stations play on currently selected room
+#   - Player assignments route specific players to rooms
+#   - Check "Multi-Room Status" to see current routing
+#   - Menu is organized: Radio → Player Assignment → Utilities
+#
+# Finding Your Radio Station Names:
+#   Method 1: Developer Tools → States → search for radio
+#   Method 2: Backend file at config/bluetooth-api/radio_streams.conf
+#   Method 3: Integration attributes (radio_streams in coordinator)
+#
+# Station Name Examples:
+#   - "Jazz FM"
+#   - "Classical Music"
+#   - "Rock Radio"
+#   - Must match EXACTLY what's in backend
+#
