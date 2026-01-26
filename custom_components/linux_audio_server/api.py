@@ -364,7 +364,15 @@ class LinuxAudioServerApiClient:
         _LOGGER.info(f"Connecting to WebSocket: {ws_url}")
 
         try:
-            async with self._session.ws_connect(ws_url) as ws:
+            # Set generous timeout for WebSocket connection (60s total, 30s for socket connect)
+            timeout = aiohttp.ClientTimeout(total=60, sock_connect=30, sock_read=None)
+            _LOGGER.debug(f"WebSocket timeout config: {timeout}")
+
+            async with self._session.ws_connect(
+                ws_url,
+                timeout=timeout,
+                heartbeat=30  # Send ping every 30s to keep connection alive
+            ) as ws:
                 _LOGGER.info("WebSocket connected successfully")
 
                 async for msg in ws:
