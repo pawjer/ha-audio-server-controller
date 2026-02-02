@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
+import time
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -27,7 +28,7 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hass,
             _LOGGER,
             name="Linux Audio Server",
-            update_interval=timedelta(seconds=10),  # Slower backup polling (WebSocket is primary)
+            update_interval=timedelta(seconds=15),  # Reduced polling frequency (WebSocket is primary)
         )
         self.client = client
         self._ws_task = None
@@ -35,14 +36,20 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
+        poll_start = time.time()
+        _LOGGER.debug("Starting data update poll cycle")
+
         try:
             # Fetch core data in parallel
             # Note: sinks_data already contains default_sink AND combined sinks
+            core_start = time.time()
             sinks_data, sink_inputs_data, playback_data = await asyncio.gather(
                 self.client.get_sinks(),
                 self.client.get_sink_inputs(),
                 self.client.get_playback_status(),
             )
+            core_time = time.time() - core_start
+            _LOGGER.debug("Core data fetched in %.3fs", core_time)
 
             # Gracefully fetch optional features (radio and Bluetooth)
             # If these fail, the integration continues to work
@@ -81,7 +88,7 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 players_data = {"players": []}
                 player_assignments_data = {"assignments": {}}
 
-            return {
+            result = {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
                 "sink_inputs": sink_inputs_data.get("sink_inputs", []),
@@ -92,7 +99,14 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "players": players_data.get("players", []),
                 "player_assignments": player_assignments_data.get("assignments", {}),
             }
+
+            total_time = time.time() - poll_start
+            _LOGGER.debug("Data update poll cycle completed in %.3fs", total_time)
+            return result
+
         except ApiClientError as err:
+            elapsed = time.time() - poll_start
+            _LOGGER.error("Data update poll cycle failed after %.3fs: %s", elapsed, err)
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
     async def async_start_websocket(self):

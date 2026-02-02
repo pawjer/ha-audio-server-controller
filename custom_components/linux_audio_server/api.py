@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 from urllib.parse import quote
 
@@ -12,8 +13,10 @@ from aiohttp import ClientError
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 20  # Increased from 10 to handle intermittent backend slowdowns
 BLUETOOTH_TIMEOUT = 30  # Bluetooth operations can take longer
+MAX_RETRIES = 2  # Number of retries for failed requests
+RETRY_DELAY = 1.0  # Initial delay between retries in seconds
 
 
 class LinuxAudioServerApiClient:
@@ -37,32 +40,127 @@ class LinuxAudioServerApiClient:
         endpoint: str,
         data: dict[str, Any] | None = None,
         timeout: float = DEFAULT_TIMEOUT,
+        retry: bool = True,
     ) -> dict[str, Any]:
-        """Make a request to the API."""
+        """Make a request to the API with automatic retry on timeout."""
+        last_error = None
+        retries = MAX_RETRIES if retry else 0
+
+        for attempt in range(retries + 1):
+            if attempt > 0:
+                delay = RETRY_DELAY * (2 ** (attempt - 1))  # Exponential backoff
+                _LOGGER.warning(
+                    "Retrying request to %s (attempt %d/%d) after %.1fs delay",
+                    endpoint, attempt + 1, retries + 1, delay
+                )
+                await asyncio.sleep(delay)
+
+            try:
+                return await self._do_request(method, endpoint, data, timeout)
+            except ApiClientError as err:
+                last_error = err
+                if attempt < retries:
+                    # Only retry on timeout errors, not on other errors
+                    if "Timeout" in str(err):
+                        continue
+                    else:
+                        # Don't retry non-timeout errors
+                        raise
+
+        # All retries exhausted
+        raise last_error
+
+    async def _do_request(
+        self,
+        method: str,
+        endpoint: str,
+        data: dict[str, Any] | None = None,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> dict[str, Any]:
+        """Execute a single request to the API (internal method)."""
         url = f"{self._base_url}{endpoint}"
+        start_time = time.time()
+
+        # Log connection pool status if available
+        if hasattr(self._session.connector, '_conns'):
+            conn_info = f"Pool: {len(self._session.connector._conns)} conns"
+        else:
+            conn_info = "Pool: unknown"
+
+        _LOGGER.debug(
+            "API request starting: %s %s (timeout: %ss, %s)",
+            method, endpoint, timeout, conn_info
+        )
 
         try:
             async with asyncio.timeout(timeout):
+                connect_start = time.time()
+
                 if method == "GET":
                     async with self._session.get(url) as response:
+                        connect_time = time.time() - connect_start
+                        read_start = time.time()
                         response.raise_for_status()
-                        return await response.json()
+                        result = await response.json()
+                        read_time = time.time() - read_start
+                        total_time = time.time() - start_time
+
+                        _LOGGER.debug(
+                            "API request completed: %s %s (connect: %.3fs, read: %.3fs, total: %.3fs)",
+                            method, endpoint, connect_time, read_time, total_time
+                        )
+                        return result
+
                 elif method == "POST":
                     async with self._session.post(url, json=data) as response:
+                        connect_time = time.time() - connect_start
+                        read_start = time.time()
                         response.raise_for_status()
-                        return await response.json()
+                        result = await response.json()
+                        read_time = time.time() - read_start
+                        total_time = time.time() - start_time
+
+                        _LOGGER.debug(
+                            "API request completed: %s %s (connect: %.3fs, read: %.3fs, total: %.3fs)",
+                            method, endpoint, connect_time, read_time, total_time
+                        )
+                        return result
+
                 elif method == "DELETE":
                     async with self._session.delete(url) as response:
+                        connect_time = time.time() - connect_start
+                        read_start = time.time()
                         response.raise_for_status()
-                        return await response.json()
+                        result = await response.json()
+                        read_time = time.time() - read_start
+                        total_time = time.time() - start_time
+
+                        _LOGGER.debug(
+                            "API request completed: %s %s (connect: %.3fs, read: %.3fs, total: %.3fs)",
+                            method, endpoint, connect_time, read_time, total_time
+                        )
+                        return result
+
         except asyncio.TimeoutError as err:
-            _LOGGER.error("Timeout connecting to %s: %s", url, err)
+            elapsed = time.time() - start_time
+            _LOGGER.error(
+                "Timeout after %.3fs connecting to %s (timeout setting: %ss, %s)",
+                elapsed, url, timeout, conn_info
+            )
             raise ApiClientError(f"Timeout connecting to {url}") from err
         except (aiohttp.ContentTypeError, json.JSONDecodeError) as err:
-            _LOGGER.error("Invalid JSON response from %s: %s", url, err)
+            elapsed = time.time() - start_time
+            _LOGGER.error(
+                "Invalid JSON response from %s after %.3fs: %s",
+                url, elapsed, err
+            )
             raise ApiClientError(f"Invalid JSON response from {url}") from err
         except ClientError as err:
-            _LOGGER.error("Error communicating with %s: %s", url, err)
+            elapsed = time.time() - start_time
+            _LOGGER.error(
+                "Error communicating with %s after %.3fs: %s (type: %s, %s)",
+                url, elapsed, err, type(err).__name__, conn_info
+            )
             raise ApiClientError(f"Error communicating with {url}") from err
 
     async def health_check(self) -> dict[str, Any]:
