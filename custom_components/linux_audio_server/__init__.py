@@ -291,9 +291,13 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
         try:
             url = call.data["url"]
-            await coordinator.client.play_radio_url(url)
+            sink = call.data.get("sink")  # Optional sink parameter
+            await coordinator.client.play_radio_url(url, sink=sink)
             await coordinator.async_request_refresh()
-            _LOGGER.info("Playing radio URL: %s", url)
+            if sink:
+                _LOGGER.info("Playing radio URL '%s' on sink '%s'", url, sink)
+            else:
+                _LOGGER.info("Playing radio URL: %s", url)
         except ApiClientError as err:
             _LOGGER.error("Failed to play radio URL: %s", err)
             raise HomeAssistantError(f"Failed to play radio URL: {err}") from err
@@ -597,6 +601,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
     play_radio_url_schema = vol.Schema({
         vol.Required("url"): cv.string,
+        vol.Optional("sink"): cv.string,
     })
 
     bluetooth_address_schema = vol.Schema({

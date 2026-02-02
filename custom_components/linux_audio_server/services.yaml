@@ -213,6 +213,13 @@ play_radio_url:
       example: "http://stream.example.com/radio.mp3"
       selector:
         text:
+    sink:
+      name: Sink
+      description: Audio sink to play on (optional - uses default if not specified)
+      required: false
+      example: "bluez_output.F4_9D_8A_5D_E7_28.1"
+      selector:
+        text:
 
 bluetooth_pair:
   name: Pair Bluetooth Device

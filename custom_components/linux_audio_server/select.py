@@ -112,11 +112,19 @@ class RadioStationSelect(CoordinatorEntity, SelectEntity):
         return None
 
     async def async_select_option(self, option: str) -> None:
-        """Play the selected radio station."""
+        """Play the selected radio station on the default sink."""
         try:
-            await self.coordinator.client.play_radio_stream(option)
+            # Get the current default sink from coordinator data
+            default_sink = self.coordinator.data.get("default_sink")
+
+            # Play on default sink to avoid ambiguity
+            await self.coordinator.client.play_radio_stream(option, sink=default_sink)
             await self.coordinator.async_request_refresh()
-            _LOGGER.info("Playing radio station: %s", option)
+
+            if default_sink:
+                _LOGGER.info("Playing radio station '%s' on default sink '%s'", option, default_sink)
+            else:
+                _LOGGER.info("Playing radio station: %s", option)
         except Exception as err:
             _LOGGER.error("Failed to play radio station %s: %s", option, err)
 
