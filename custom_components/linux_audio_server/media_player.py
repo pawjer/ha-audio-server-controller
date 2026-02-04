@@ -279,24 +279,60 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if active_player:
             # Get track from the active player
             players = self.coordinator.data.get("players", [])
+            _LOGGER.debug(
+                "[%s] Track fetch - Priority 1: Active player '%s', total players: %d",
+                self._sink_name,
+                active_player,
+                len(players)
+            )
             for player in players:
                 if player.get("id") == active_player:
-                    return player.get("current_track")
+                    track = player.get("current_track")
+                    _LOGGER.debug(
+                        "[%s] Track fetch - Found player '%s', current_track: %s",
+                        self._sink_name,
+                        active_player,
+                        track
+                    )
+                    return track
+            _LOGGER.debug(
+                "[%s] Track fetch - Player '%s' not found in players array",
+                self._sink_name,
+                active_player
+            )
 
         # Fallback: check player assignments (might be stale but better than nothing)
         player_assignments = self.coordinator.data.get("player_assignments", {})
         assigned_player = player_assignments.get(self._sink_name)
 
         if assigned_player:
+            _LOGGER.debug(
+                "[%s] Track fetch - Priority 2: Assigned player '%s'",
+                self._sink_name,
+                assigned_player
+            )
             # Get the assigned player's data
             players = self.coordinator.data.get("players", [])
             for player in players:
                 if player.get("id") == assigned_player:
-                    return player.get("current_track")
+                    track = player.get("current_track")
+                    _LOGGER.debug(
+                        "[%s] Track fetch - Found assigned player '%s', current_track: %s",
+                        self._sink_name,
+                        assigned_player,
+                        track
+                    )
+                    return track
 
         # Fallback to global playback data (player1)
         playback = self.coordinator.data.get("playback", {})
-        return playback.get("track")
+        track = playback.get("track")
+        _LOGGER.debug(
+            "[%s] Track fetch - Priority 3: Global playback track: %s",
+            self._sink_name,
+            track
+        )
+        return track
 
     @property
     def state(self) -> MediaPlayerState:
