@@ -1,6 +1,7 @@
 """Sensor platform for Linux Audio Server."""
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -29,6 +30,7 @@ async def async_setup_entry(
         ActiveStreamsSensor(coordinator, entry),
         BluetoothKeepAliveSensor(coordinator, entry),
         MopidyPlayersSensor(coordinator, entry),
+        PlayedTracksHistorySensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -191,3 +193,109 @@ class MopidyPlayersSensor(CoordinatorEntity, SensorEntity):
             ],
             "assignments": assignments,
         }
+
+
+class PlayedTracksHistorySensor(CoordinatorEntity, SensorEntity):
+    """Sensor tracking recently played tracks history."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:playlist-music"
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_played_tracks_history"
+        self._attr_name = "Played Tracks History"
+        self._history: list[dict[str, Any]] = []
+        self._last_track_uri: str | None = None
+        self._max_history = 50  # Keep last 50 tracks
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "Linux Audio Server",
+            "manufacturer": "Linux Audio Server",
+            "model": "Audio Hub",
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
+    def native_value(self) -> str:
+        """Return the most recently played track."""
+        if self._history:
+            recent = self._history[0]
+            artist = recent.get("artist", "Unknown Artist")
+            title = recent.get("title", "Unknown Title")
+            return f"{artist} - {title}"
+        return "No tracks played"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return track history as attributes."""
+        return {
+            "history": self._history[:20],  # Show last 20 in attributes
+            "total_tracks": len(self._history),
+            "last_updated": self._history[0]["timestamp"] if self._history else None,
+        }
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Get current track from playback data
+        playback = self.coordinator.data.get("playback", {})
+        track = playback.get("track")
+
+        if not track:
+            # No track playing, check all players
+            players = self.coordinator.data.get("players", [])
+            for player in players:
+                player_track = player.get("current_track")
+                if player_track:
+                    track = player_track
+                    break
+
+        if track:
+            # Create a unique identifier for the track
+            track_uri = track.get("uri", "")
+            track_name = track.get("name", "")
+            track_artist = track.get("artist", "")
+
+            # Use URI or fallback to name+artist combination
+            track_id = track_uri or f"{track_artist}|{track_name}"
+
+            # Only add to history if it's a different track
+            if track_id and track_id != self._last_track_uri:
+                _LOGGER.debug(
+                    "New track detected for history: %s - %s",
+                    track_artist,
+                    track_name
+                )
+
+                # Add to history
+                self._history.insert(0, {
+                    "title": track_name,
+                    "artist": track_artist,
+                    "album": track.get("album", ""),
+                    "uri": track_uri,
+                    "timestamp": datetime.now().isoformat(),
+                    "duration": track.get("length"),  # Duration in ms
+                })
+
+                # Trim history to max size
+                self._history = self._history[:self._max_history]
+
+                # Update last track
+                self._last_track_uri = track_id
+
+        # Call parent to trigger entity update
+        super()._handle_coordinator_update()

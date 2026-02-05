@@ -184,14 +184,16 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     def available(self) -> bool:
         """Return if entity is available.
 
-        For Bluetooth devices: Always available if paired (so power button works when disconnected)
+        For Bluetooth devices: Available if paired OR if sink exists (connected)
         For other devices: Available only when sink exists
         """
         if not self.coordinator.last_update_success:
             return False
 
-        # For Bluetooth devices, check if device is paired
+        # For Bluetooth devices, check if device is paired or sink exists
         if self._is_bluetooth and self._bluetooth_address:
+            sink_exists = self._sink_data is not None
+
             # Check if this Bluetooth device exists in device tracker data
             bluetooth_devices = self.coordinator.data.get("bluetooth_devices", [])
             for device in bluetooth_devices:
@@ -203,22 +205,23 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                         self._attr_name,
                         self._bluetooth_address,
                         is_paired,
-                        self._sink_data is not None,
+                        sink_exists,
                     )
-                    if is_paired:
+                    # Available if paired OR if sink exists (handles race condition)
+                    if is_paired or sink_exists:
                         return True
-                    # If found but not paired, entity should be unavailable
+                    # If found but not paired AND no sink, entity should be unavailable
                     return False
 
             # If Bluetooth device not found in device list, check if sink exists
-            # This handles the case where the device was just discovered
+            # This handles the case where the device was just discovered or paired
             _LOGGER.debug(
                 "Bluetooth device %s (%s) not found in device list, checking sink: %s",
                 self._attr_name,
                 self._bluetooth_address,
-                self._sink_data is not None,
+                sink_exists,
             )
-            return self._sink_data is not None
+            return sink_exists
 
         # For non-Bluetooth devices, only available when sink exists
         return self._sink_data is not None
