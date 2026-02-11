@@ -59,8 +59,79 @@ PLATFORMS: list[Platform] = [
 ]
 
 
+async def _async_setup_dynamic_entities(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: LinuxAudioServerCoordinator,
+) -> None:
+    """Set up dynamic entity creation listener."""
+    from homeassistant.helpers import entity_registry as er
+
+    # Track entities we've created
+    created_entities = {}
+
+    async def async_handle_sink_changes() -> None:
+        """Handle sink changes from coordinator updates."""
+        _LOGGER.info("[DYNAMIC_ENTITIES] Coordinator update - checking for new sinks")
+
+        # Get current sinks from coordinator
+        sinks = coordinator.data.get("sinks", [])
+        _LOGGER.info(f"[DYNAMIC_ENTITIES] Current sinks: {len(sinks)}")
+
+        # Get async_add_entities callback
+        if "media_player_add_entities" not in hass.data[DOMAIN]:
+            _LOGGER.warning("[DYNAMIC_ENTITIES] async_add_entities callback not available yet")
+            return
+
+        async_add_entities = hass.data[DOMAIN]["media_player_add_entities"].get(entry.entry_id)
+        if not async_add_entities:
+            _LOGGER.warning("[DYNAMIC_ENTITIES] async_add_entities callback not found for this entry")
+            return
+
+        # Get entity registry to check existing entities
+        entity_reg = er.async_get(hass)
+
+        # Get all existing media_player entities for this integration
+        existing_entities = {
+            entity.unique_id
+            for entity in entity_reg.entities.values()
+            if entity.config_entry_id == entry.entry_id
+            and entity.domain == "media_player"
+        }
+        _LOGGER.info(f"[DYNAMIC_ENTITIES] Existing entities in registry: {len(existing_entities)}")
+
+        # Check for new sinks that need entities
+        new_entities = []
+        for sink in sinks:
+            sink_name = sink["name"]
+            unique_id = f"{entry.entry_id}_{sink_name}"
+
+            if unique_id not in existing_entities and unique_id not in created_entities:
+                _LOGGER.info(
+                    f"[DYNAMIC_ENTITIES] Creating new entity for sink: {sink.get('description', sink_name)} ({sink_name})"
+                )
+
+                # Import AudioSinkMediaPlayer here to avoid circular import
+                from .media_player import AudioSinkMediaPlayer
+
+                new_entity = AudioSinkMediaPlayer(coordinator, entry, sink)
+                new_entities.append(new_entity)
+                created_entities[unique_id] = new_entity
+
+        if new_entities:
+            _LOGGER.info(f"[DYNAMIC_ENTITIES] Adding {len(new_entities)} new entities")
+            async_add_entities(new_entities)
+        else:
+            _LOGGER.debug("[DYNAMIC_ENTITIES] No new entities to add")
+
+    # Register the listener
+    coordinator.async_add_listener(async_handle_sink_changes)
+    _LOGGER.info(f"[DYNAMIC_ENTITIES] Listener registered, total listeners: {len(coordinator._listeners)}")
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Linux Audio Server from a config entry."""
+    _LOGGER.info(f"[SETUP] Starting setup for {entry.data[CONF_HOST]}:{entry.data[CONF_PORT]}")
     hass.data.setdefault(DOMAIN, {})
 
     # Create API client
@@ -70,27 +141,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         port=entry.data[CONF_PORT],
         session=session,
     )
+    _LOGGER.info("[SETUP] API client created")
 
     # Create coordinator
     coordinator = LinuxAudioServerCoordinator(hass, client)
+    _LOGGER.info("[SETUP] Coordinator created")
 
     # Fetch initial data
+    _LOGGER.info("[SETUP] Starting first refresh...")
     await coordinator.async_config_entry_first_refresh()
+    _LOGGER.info("[SETUP] First refresh completed")
 
     # Store coordinator
     hass.data[DOMAIN][entry.entry_id] = coordinator
+    _LOGGER.info("[SETUP] Coordinator stored")
 
     # Start WebSocket listener for real-time updates
+    _LOGGER.info("[SETUP] About to start WebSocket...")
     await coordinator.async_start_websocket()
-    _LOGGER.info("WebSocket listener started for real-time state updates")
+    _LOGGER.info("[SETUP] WebSocket listener started for real-time state updates")
 
     # Forward setup to platforms
+    _LOGGER.info("[SETUP] Forwarding to platforms...")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _LOGGER.info("[SETUP] Platform setup completed")
+
+    # Register dynamic entity creation listener
+    _LOGGER.info("[SETUP] Registering dynamic entity listener...")
+    await _async_setup_dynamic_entities(hass, entry, coordinator)
+    _LOGGER.info("[SETUP] Dynamic entity listener registered")
 
     # Register services only once (for first instance)
     if not hass.services.has_service(DOMAIN, SERVICE_CREATE_COMBINED_SINK):
         await _async_register_services(hass)
+        _LOGGER.info("[SETUP] Services registered")
 
+    _LOGGER.info("[SETUP] Setup completed successfully")
     return True
 
 

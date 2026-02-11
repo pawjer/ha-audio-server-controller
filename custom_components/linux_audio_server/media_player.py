@@ -32,113 +32,61 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Linux Audio Server media player entities."""
+    _LOGGER.info("[MEDIA_PLAYER_SETUP] async_setup_entry called!")
     coordinator: LinuxAudioServerCoordinator = hass.data[DOMAIN][entry.entry_id]
     entity_reg = er.async_get(hass)
 
-    # Create media player entities for each sink
+    # Store async_add_entities callback for dynamic entity creation
+    if "media_player_add_entities" not in hass.data[DOMAIN]:
+        hass.data[DOMAIN]["media_player_add_entities"] = {}
+    hass.data[DOMAIN]["media_player_add_entities"][entry.entry_id] = async_add_entities
+    _LOGGER.info("[MEDIA_PLAYER_SETUP] Stored async_add_entities callback")
+
+    # Get existing entities from registry (to restore disconnected speakers)
+    existing_registry_entities = {
+        entity.unique_id: entity
+        for entity in entity_reg.entities.values()
+        if entity.config_entry_id == entry.entry_id
+        and entity.domain == "media_player"
+    }
+    _LOGGER.info(f"[MEDIA_PLAYER_SETUP] Found {len(existing_registry_entities)} entities in registry")
+
+    # Create media player entities
     entities = []
-    for sink in coordinator.data.get("sinks", []):
+    sink_names_created = set()
+    current_sinks = coordinator.data.get("sinks", [])
+    current_sink_map = {sink["name"]: sink for sink in current_sinks}
+
+    # First, create entities for all existing sinks
+    for sink in current_sinks:
         entities.append(AudioSinkMediaPlayer(coordinator, entry, sink))
+        sink_names_created.add(sink["name"])
+        _LOGGER.debug(f"[MEDIA_PLAYER_SETUP] Created entity for existing sink: {sink['name']}")
 
-    async_add_entities(entities)
+    # Second, restore entities from registry that don't have sinks (disconnected speakers)
+    for unique_id, registry_entry in existing_registry_entities.items():
+        # Extract sink name from unique_id (format: entry_id_sink_name)
+        sink_name = unique_id.replace(f"{entry.entry_id}_", "")
 
-    # Set up a listener to add new sinks dynamically and remove stale entities
-    async def async_update_entities() -> None:
-        """Update entities when coordinator data changes."""
-        try:
-            current_entities = {entity.unique_id for entity in entities}
-            existing_entity_sink_names = {entity._sink_name for entity in entities}
-            new_sinks = coordinator.data.get("sinks", [])
-
-            _LOGGER.debug(
-                "Entity update triggered: current_entities=%d, new_sinks=%d",
-                len(current_entities),
-                len(new_sinks)
+        if sink_name not in sink_names_created:
+            # This entity exists in registry but sink is gone - create placeholder
+            _LOGGER.info(
+                f"[MEDIA_PLAYER_SETUP] Restoring entity for disconnected sink: "
+                f"{registry_entry.name or registry_entry.original_name} ({sink_name})"
             )
 
-            # Get current Bluetooth devices
-            bluetooth_devices = coordinator.data.get("bluetooth_devices", [])
-            paired_addresses = {dev.get("address") for dev in bluetooth_devices if dev.get("paired", False)}
+            # Create minimal sink dict for placeholder entity
+            placeholder_sink = {
+                "name": sink_name,
+                "description": registry_entry.original_name or "Disconnected Device",
+                "driver": "module-bluez5-device.c" if sink_name.startswith("bluez_") else "unknown",
+            }
+            entities.append(AudioSinkMediaPlayer(coordinator, entry, placeholder_sink))
+            sink_names_created.add(sink_name)
 
-            # Add new sinks
-            for sink in new_sinks:
-                sink_name = sink["name"]
-                unique_id = f"{entry.entry_id}_{sink_name}"
-
-                # Check if entity already exists (by unique_id or sink_name)
-                if unique_id not in current_entities and sink_name not in existing_entity_sink_names:
-                    try:
-                        _LOGGER.info(
-                            "Creating new media player entity for sink: %s (%s)",
-                            sink.get("description", sink_name),
-                            sink_name
-                        )
-                        new_entity = AudioSinkMediaPlayer(coordinator, entry, sink)
-                        entities.append(new_entity)
-                        async_add_entities([new_entity])
-                        # Force immediate state update so entity doesn't wait for next coordinator poll
-                        new_entity.async_write_ha_state()
-                        _LOGGER.info("Successfully added media player entity: %s", unique_id)
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to create media player entity for sink %s: %s",
-                            sink_name,
-                            err,
-                            exc_info=True
-                        )
-                else:
-                    _LOGGER.debug("Entity already exists for sink: %s", sink_name)
-
-            # Remove stale Bluetooth speaker entities
-            # An entity is stale if:
-            # 1. It's a Bluetooth device (sink name starts with bluez_output.)
-            # 2. The Bluetooth device is no longer paired
-            # 3. The sink no longer exists
-            current_sink_names = {sink["name"] for sink in new_sinks}
-
-            entities_to_remove = []
-            for entity in entities:
-                # Check if this is a Bluetooth entity
-                if not entity._sink_name.startswith("bluez_output."):
-                    continue
-
-                # Extract Bluetooth address
-                bt_address = entity._bluetooth_address
-                if not bt_address:
-                    continue
-
-                # Check if device is still paired
-                is_paired = bt_address in paired_addresses
-                sink_exists = entity._sink_name in current_sink_names
-
-                # Remove entity if device is no longer paired AND sink doesn't exist
-                if not is_paired and not sink_exists:
-                    _LOGGER.info(
-                        "Removing stale Bluetooth speaker entity: %s (address: %s, paired: %s, sink exists: %s)",
-                        entity._attr_name,
-                        bt_address,
-                        is_paired,
-                        sink_exists,
-                    )
-                    entities_to_remove.append(entity)
-
-                    # Remove from entity registry
-                    entity_id = entity_reg.async_get_entity_id(
-                        "media_player",
-                        DOMAIN,
-                        entity.unique_id,
-                    )
-                    if entity_id:
-                        entity_reg.async_remove(entity_id)
-
-            # Remove from our entities list
-            for entity in entities_to_remove:
-                entities.remove(entity)
-
-        except Exception as err:
-            _LOGGER.error("Error in async_update_entities: %s", err, exc_info=True)
-
-    coordinator.async_add_listener(async_update_entities)
+    async_add_entities(entities)
+    _LOGGER.info(f"[MEDIA_PLAYER_SETUP] Added {len(entities)} entities ({len(current_sinks)} with sinks, {len(entities) - len(current_sinks)} placeholders)")
+    _LOGGER.info("[MEDIA_PLAYER_SETUP] Setup complete - dynamic entity creation handled by __init__.py")
 
 
 class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
