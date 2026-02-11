@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from homeassistant.core import callback
 from homeassistant.components.media_player import (
     BrowseMedia,
     MediaPlayerDeviceClass,
@@ -75,6 +76,8 @@ async def async_setup_entry(
                         new_entity = AudioSinkMediaPlayer(coordinator, entry, sink)
                         entities.append(new_entity)
                         async_add_entities([new_entity])
+                        # Force immediate state update so entity doesn't wait for next coordinator poll
+                        new_entity.async_write_ha_state()
                         _LOGGER.info("Successfully added media player entity: %s", unique_id)
                     except Exception as err:
                         _LOGGER.error(
@@ -160,6 +163,12 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         # Check if this is a Bluetooth sink
         self._is_bluetooth = self._sink_name.startswith("bluez_output.")
         self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        _LOGGER.debug("Coordinator update received for %s", self._sink_name)
+        super()._handle_coordinator_update()
 
     def _extract_bluetooth_address(self) -> str | None:
         """Extract Bluetooth MAC address from sink name.
