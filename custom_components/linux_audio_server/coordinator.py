@@ -152,11 +152,28 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _handle_websocket_event(self, event_data: dict):
         """Handle incoming WebSocket event."""
         event_source = event_data.get("source")
-        event_type = event_data.get("event")
 
-        _LOGGER.debug(f"WebSocket event: {event_source}.{event_type}")
+        # PulseAudio uses 'event_type', Mopidy uses 'event'
+        event_type = event_data.get("event_type") or event_data.get("event")
+        event_facility = event_data.get("facility")
+
+        _LOGGER.debug(f"WebSocket event: {event_source}.{event_type} (facility: {event_facility})")
 
         # For any relevant event, trigger a data refresh
         if event_source in ("mopidy", "pulseaudio"):
-            _LOGGER.info(f"Triggering update from WebSocket event: {event_source}.{event_type}")
+            _LOGGER.info(
+                f"Triggering update from WebSocket event: {event_source}.{event_type} "
+                f"(facility: {event_facility})"
+            )
+
+            # Add small delay for sink creation events to ensure PulseAudio has fully initialized
+            # This prevents race conditions where the WebSocket event arrives before sink data is available
+            if event_source == "pulseaudio" and event_facility == "sink" and event_type == "new":
+                _LOGGER.debug("New sink detected, waiting 0.5s for PulseAudio initialization")
+                await asyncio.sleep(0.5)
+
             await self.async_request_refresh()
+            try:
+                _LOGGER.debug(f"Data refresh completed, notifying {len(self._listeners)} listeners")
+            except AttributeError:
+                _LOGGER.debug("Data refresh completed, notifying listeners")

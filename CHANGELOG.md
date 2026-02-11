@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-02-11
+
+### Fixed
+- **Bluetooth media player auto-creation** - Media player entities now appear automatically when Bluetooth speakers connect at runtime (no integration reload required)
+- **PulseAudio event handling** - Fixed event field name mismatch (`event_type` vs `event`) that prevented proper event processing
+- **Race condition** - Added 0.5s initialization delay for new sink events to ensure PulseAudio data is ready
+- **Error visibility** - Added comprehensive error handling and logging for entity creation failures
+
+### Changed
+- Enhanced logging throughout entity lifecycle (debug/info/error levels)
+- Improved duplicate entity detection (checks both unique_id and sink_name)
+- Better variable naming for code clarity
+- Added explanatory comments for timing-sensitive code
+
+### Technical
+- Modified `coordinator.py` to handle both PulseAudio and Mopidy event formats
+- Modified `media_player.py` with robust error handling and enhanced logging
+- Safe access for private `_listeners` attribute with fallback
+
 ## [0.7.0] - 2026-01-26
 
 ### 🚀 MAJOR UPGRADE: Real-Time WebSocket Updates
