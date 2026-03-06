@@ -456,6 +456,24 @@ class LinuxAudioServerApiClient:
         """Assign a specific player to a sink."""
         return await self._request("POST", "/api/players/assign", {"player": player_name, "sink": sink_name})
 
+    async def get_source_defaults(self) -> dict[str, Any]:
+        """Get default sink assignments for sources (radio, spotify, airplay, tts)."""
+        return await self._request("GET", "/api/audio/source-defaults")
+
+    async def set_source_default(self, source_id: str, sink_name: str | None) -> dict[str, Any]:
+        """Set or remove default sink for a source."""
+        encoded = quote(source_id, safe="")
+        return await self._request(
+            "POST",
+            f"/api/audio/source-defaults/{encoded}",
+            {"sink": sink_name or ""},
+        )
+
+    async def remove_source_default(self, source_id: str) -> dict[str, Any]:
+        """Remove default sink assignment for a source."""
+        encoded = quote(source_id, safe="")
+        return await self._request("DELETE", f"/api/audio/source-defaults/{encoded}")
+
     async def connect_websocket(self, on_message_callback):
         """Connect to WebSocket event stream for real-time updates."""
         ws_url = f"ws://{self._host}:{self._port}/api/events/ws"

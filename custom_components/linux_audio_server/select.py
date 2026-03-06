@@ -238,7 +238,12 @@ class SinkRadioStationSelect(CoordinatorEntity, SelectEntity):
 
 
 class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
-    """Base class for routing audio sources to sinks."""
+    """Base class for routing audio sources to sinks.
+
+    Always available — shows the stored default when the source is idle,
+    and the active sink when the source is playing.  Selecting an option
+    saves the default *and* moves the live stream if one exists.
+    """
 
     _attr_has_entity_name = False
     _attr_icon = "mdi:speaker-wireless"
@@ -249,12 +254,14 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
         entry: ConfigEntry,
         source_name: str,
         source_identifier: str,
+        source_default_id: str,
     ) -> None:
         """Initialize the source router select entity."""
         super().__init__(coordinator)
         self._entry = entry
         self._source_name = source_name
         self._source_identifier = source_identifier
+        self._source_default_id = source_default_id
         self._attr_unique_id = f"{entry.entry_id}_{source_name.lower().replace(' ', '_')}_sink_router"
         self._attr_name = f"{source_name} Output"
 
@@ -276,10 +283,17 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
                 return sink_input
         return None
 
+    def _sink_description_for_name(self, sink_name: str) -> str | None:
+        """Return the sink description matching a sink name."""
+        for sink in self.coordinator.data.get("sinks", []):
+            if sink["name"] == sink_name:
+                return sink.get("description", sink_name)
+        return None
+
     @property
     def available(self) -> bool:
-        """Return if entity is available (source is active)."""
-        return self.coordinator.last_update_success and self._find_sink_input() is not None
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
 
     @property
     def options(self) -> list[str]:
@@ -289,22 +303,24 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return currently selected sink description."""
-        sink_input = self._find_sink_input()
-        if not sink_input:
-            return None
+        """Return currently selected sink description.
 
-        return sink_input.get("sink_description")
+        Priority: active stream sink > stored default.
+        """
+        sink_input = self._find_sink_input()
+        if sink_input:
+            return sink_input.get("sink_description")
+
+        # Fall back to stored source default
+        stored_default = self.coordinator.data.get("source_defaults", {}).get(self._source_default_id)
+        if stored_default:
+            return self._sink_description_for_name(stored_default)
+
+        return None
 
     async def async_select_option(self, option: str) -> None:
-        """Route source to the selected sink."""
+        """Route source to the selected sink and save as default."""
         try:
-            # Find the sink-input
-            sink_input = self._find_sink_input()
-            if not sink_input:
-                _LOGGER.warning("Cannot route %s: source not active", self._source_name)
-                return
-
             # Find the sink by description
             sinks = self.coordinator.data.get("sinks", [])
             target_sink = None
@@ -317,12 +333,16 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
                 _LOGGER.error("Cannot find sink with description: %s", option)
                 return
 
-            # Move the stream
-            _LOGGER.info("Moving %s to sink: %s", self._source_name, target_sink)
-            await self.coordinator.client.move_stream(
-                sink_input["index"],
-                target_sink
-            )
+            # Always save as the persistent default
+            _LOGGER.info("Setting default for %s -> %s", self._source_name, target_sink)
+            await self.coordinator.client.set_source_default(self._source_default_id, target_sink)
+
+            # Also move the live stream if one exists
+            sink_input = self._find_sink_input()
+            if sink_input:
+                _LOGGER.info("Moving active %s stream to sink: %s", self._source_name, target_sink)
+                await self.coordinator.client.move_stream(sink_input["index"], target_sink)
+
             await self.coordinator.async_request_refresh()
 
         except Exception as err:
@@ -343,7 +363,7 @@ class AirplaySinkSelect(SourceSinkRouterSelect):
         entry: ConfigEntry,
     ) -> None:
         """Initialize Airplay sink router."""
-        super().__init__(coordinator, entry, "Airplay", "Shairport Sync")
+        super().__init__(coordinator, entry, "Airplay", "Shairport Sync", "airplay")
         self._attr_icon = "mdi:cast-audio"
 
 
@@ -356,7 +376,7 @@ class TTSSinkSelect(SourceSinkRouterSelect):
         entry: ConfigEntry,
     ) -> None:
         """Initialize TTS sink router."""
-        super().__init__(coordinator, entry, "TTS", "Mopidy Player 1 (TTS)")
+        super().__init__(coordinator, entry, "TTS", "Mopidy Player 1 (TTS)", "tts")
         self._attr_icon = "mdi:text-to-speech"
 
 
@@ -369,5 +389,5 @@ class SpotifySinkSelect(SourceSinkRouterSelect):
         entry: ConfigEntry,
     ) -> None:
         """Initialize Spotify sink router."""
-        super().__init__(coordinator, entry, "Spotify", "librespot")
+        super().__init__(coordinator, entry, "Spotify", "librespot", "spotify")
         self._attr_icon = "mdi:spotify"

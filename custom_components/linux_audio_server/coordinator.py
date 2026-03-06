@@ -88,6 +88,13 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 players_data = {"players": []}
                 player_assignments_data = {"assignments": {}}
 
+            source_defaults_data = {}
+            try:
+                source_defaults_data = await self.client.get_source_defaults()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch source defaults: %s", err)
+                source_defaults_data = {"source_defaults": {}}
+
             result = {
                 "sinks": sinks_data.get("sinks", []),
                 "default_sink": sinks_data.get("default_sink"),
@@ -98,6 +105,7 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "keep_alive": keep_alive_data,
                 "players": players_data.get("players", []),
                 "player_assignments": player_assignments_data.get("assignments", {}),
+                "source_defaults": source_defaults_data.get("source_defaults", {}),
             }
 
             total_time = time.time() - poll_start
