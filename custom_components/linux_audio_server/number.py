@@ -206,8 +206,8 @@ class SinkLatencyOffsetNumber(CoordinatorEntity, NumberEntity):
     _attr_has_entity_name = False
     _attr_icon = "mdi:timer-sync-outline"
     _attr_native_min_value = 0
-    _attr_native_max_value = 500
-    _attr_native_step = 5
+    _attr_native_max_value = 2000
+    _attr_native_step = 10
     _attr_native_unit_of_measurement = "ms"
     _attr_mode = NumberMode.SLIDER
 
