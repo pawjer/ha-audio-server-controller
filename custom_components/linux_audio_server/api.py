@@ -456,6 +456,20 @@ class LinuxAudioServerApiClient:
         """Assign a specific player to a sink."""
         return await self._request("POST", "/api/players/assign", {"player": player_name, "sink": sink_name})
 
+    async def get_sink_latency_offset(self, sink_name: str) -> dict[str, Any]:
+        """Get stored latency offset for a sink (ms)."""
+        encoded = quote(sink_name, safe="")
+        return await self._request("GET", f"/api/audio/sink/{encoded}/latency-offset")
+
+    async def set_sink_latency_offset(self, sink_name: str, offset_ms: int) -> dict[str, Any]:
+        """Set latency offset for a Bluetooth sink (0–500 ms)."""
+        encoded = quote(sink_name, safe="")
+        return await self._request(
+            "POST",
+            f"/api/audio/sink/{encoded}/latency-offset",
+            {"offset_ms": offset_ms},
+        )
+
     async def get_source_defaults(self) -> dict[str, Any]:
         """Get default sink assignments for sources (radio, spotify, airplay, tts)."""
         return await self._request("GET", "/api/audio/source-defaults")
