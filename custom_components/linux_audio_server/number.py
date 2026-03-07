@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -86,6 +86,7 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
         self._attr_unique_id = f"{entry.entry_id}_{source_name.lower().replace(' ', '_')}_volume"
         self._attr_name = f"{source_name} Volume"
         self._last_volume: float = 0.5
+        self._was_streaming: bool = False
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -116,16 +117,39 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
         """Return if entity is available."""
         return self.coordinator.last_update_success
 
+    async def async_added_to_hass(self) -> None:
+        """Initialise _was_streaming so we don't push volume on HA restart."""
+        await super().async_added_to_hass()
+        self._was_streaming = self._find_sink_input() is not None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Push cached volume to stream the moment it first appears."""
+        sink_input = self._find_sink_input()
+        is_streaming = sink_input is not None
+        if is_streaming and not self._was_streaming:
+            self.hass.async_create_task(
+                self._apply_cached_volume(sink_input["index"])
+            )
+        self._was_streaming = is_streaming
+        super()._handle_coordinator_update()
+
+    async def _apply_cached_volume(self, index: int) -> None:
+        try:
+            await self.coordinator.client.set_stream_volume(index, self._last_volume)
+            _LOGGER.debug(
+                "Applied cached volume %.2f to new %s stream", self._last_volume, self._source_name
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to apply cached volume for %s: %s", self._source_name, err)
+
     @property
     def native_value(self) -> float:
-        """Return stream volume when active, or last known volume when idle."""
-        sink_input = self._find_sink_input()
-        if sink_input:
-            self._last_volume = sink_input.get("volume", self._last_volume)
+        """Return the user-controlled volume (never overwritten by stream state)."""
         return self._last_volume
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set stream volume when active. When idle, caches value only — no API call."""
+        """Set stream volume when active. Always updates cached value."""
         self._last_volume = value
         try:
             sink_input = self._find_sink_input()
