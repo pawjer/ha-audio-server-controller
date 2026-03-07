@@ -301,16 +301,23 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return currently selected sink description.
 
-        Priority: active stream sink > stored default.
+        Priority: active stream sink > stored source default > system default sink.
         """
         sink_input = self._find_sink_input()
         if sink_input:
-            return sink_input.get("sink_description")
+            desc = self._sink_description_for_name(sink_input.get("sink") or "")
+            if desc:
+                return desc
 
         # Fall back to stored source default
         stored_default = self.coordinator.data.get("source_defaults", {}).get(self._source_default_id)
         if stored_default:
             return self._sink_description_for_name(stored_default)
+
+        # Fall back to system default sink so entity always shows something
+        system_default = self.coordinator.data.get("default_sink")
+        if system_default:
+            return self._sink_description_for_name(system_default)
 
         return None
 
