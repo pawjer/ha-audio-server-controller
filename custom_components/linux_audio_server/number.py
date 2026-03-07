@@ -31,23 +31,27 @@ async def async_setup_entry(
     entities.append(TTSVolumeNumber(coordinator, entry))
     entities.append(SpotifyVolumeNumber(coordinator, entry))
 
-    # Create latency offset sliders for each Bluetooth sink
+    # Create sink volume + latency offset sliders for each sink
     for sink in coordinator.data.get("sinks", []):
+        entities.append(SinkVolumeNumber(coordinator, entry, sink))
         if sink["name"].startswith("bluez_output."):
             entities.append(SinkLatencyOffsetNumber(coordinator, entry, sink))
 
     async_add_entities(entities)
 
-    # Add latency offset sliders for new BT sinks as they appear
+    # Add sliders for new sinks as they appear
     known_sinks: set[str] = {s["name"] for s in coordinator.data.get("sinks", [])}
 
-    async def _async_update_latency_entities() -> None:
+    async def _async_update_sink_entities() -> None:
         for sink in coordinator.data.get("sinks", []):
-            if sink["name"].startswith("bluez_output.") and sink["name"] not in known_sinks:
+            if sink["name"] not in known_sinks:
                 known_sinks.add(sink["name"])
-                async_add_entities([SinkLatencyOffsetNumber(coordinator, entry, sink)])
+                new = [SinkVolumeNumber(coordinator, entry, sink)]
+                if sink["name"].startswith("bluez_output."):
+                    new.append(SinkLatencyOffsetNumber(coordinator, entry, sink))
+                async_add_entities(new)
 
-    coordinator.async_add_listener(_async_update_latency_entities)
+    coordinator.async_add_listener(_async_update_sink_entities)
 
 
 class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
@@ -168,6 +172,65 @@ class SpotifyVolumeNumber(SourceVolumeNumber):
     ) -> None:
         """Initialize Spotify volume control."""
         super().__init__(coordinator, entry, "Spotify", "librespot", "spotify")
+
+
+class SinkVolumeNumber(CoordinatorEntity, NumberEntity):
+    """Hardware volume slider for an audio sink (speaker output level)."""
+
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:speaker"
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 1.0
+    _attr_native_step = 0.01
+    _attr_mode = NumberMode.SLIDER
+
+    def __init__(
+        self,
+        coordinator: LinuxAudioServerCoordinator,
+        entry: ConfigEntry,
+        sink: dict[str, Any],
+    ) -> None:
+        """Initialize the sink volume entity."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._sink_name = sink["name"]
+        self._attr_unique_id = f"{entry.entry_id}_{sink['name']}_sink_volume"
+        self._attr_name = f"{sink.get('description', sink['name'])} Volume"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Attach to the same device as the media player for this sink."""
+        sink = self._sink_data
+        device_name = sink.get("description", self._sink_name) if sink else self._sink_name
+        return {
+            "identifiers": {(DOMAIN, self._sink_name)},
+            "name": device_name,
+            "manufacturer": "Linux Audio Server",
+            "model": "Audio Sink",
+        }
+
+    @property
+    def _sink_data(self) -> dict[str, Any] | None:
+        for sink in self.coordinator.data.get("sinks", []):
+            if sink["name"] == self._sink_name:
+                return sink
+        return None
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and self._sink_data is not None
+
+    @property
+    def native_value(self) -> float | None:
+        sink = self._sink_data
+        return sink.get("volume") if sink else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        try:
+            await self.coordinator.client.set_sink_volume(self._sink_name, value)
+            await self.coordinator.async_request_refresh()
+        except Exception as err:
+            _LOGGER.error("Failed to set sink volume for %s: %s", self._sink_name, err)
 
 
 class SinkLatencyOffsetNumber(CoordinatorEntity, NumberEntity):

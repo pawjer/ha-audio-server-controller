@@ -111,6 +111,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         # Check if this is a Bluetooth sink
         self._is_bluetooth = self._sink_name.startswith("bluez_output.")
         self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
+        self._last_volume: float = 0.5
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -430,11 +431,23 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             _LOGGER.debug("[%s] Returning OFF from PA sink state", self._sink_name)
             return MediaPlayerState.OFF
 
+    def _get_mopidy_stream_for_sink(self) -> dict[str, Any] | None:
+        """Find the active Mopidy sink-input routing audio to this sink."""
+        for si in self.coordinator.data.get("sink_inputs", []):
+            if si.get("sink") != self._sink_name:
+                continue
+            name = si.get("name", "")
+            if any(f"mopidy-player{n}" in name or f"Player {n}" in name for n in range(1, 7)):
+                return si
+        return None
+
     @property
-    def volume_level(self) -> float | None:
-        """Volume level of the media player (0..1)."""
-        sink = self._sink_data
-        return sink.get("volume") if sink else None
+    def volume_level(self) -> float:
+        """Volume level of the active Mopidy stream, or last known when idle."""
+        si = self._get_mopidy_stream_for_sink()
+        if si is not None:
+            self._last_volume = si.get("volume", self._last_volume)
+        return self._last_volume
 
     @property
     def is_volume_muted(self) -> bool | None:
@@ -514,10 +527,13 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         }
 
     async def async_set_volume_level(self, volume: float) -> None:
-        """Set volume level, range 0..1."""
-        await self.coordinator.client.set_sink_volume(self._sink_name, volume)
-        # Optimistic update — backend applies async via VolumeController (returns 202)
-        self._attr_volume_level = volume
+        """Set volume on the active Mopidy stream. Caches value when idle."""
+        self._last_volume = volume
+        si = self._get_mopidy_stream_for_sink()
+        if si is not None:
+            await self.coordinator.client.set_stream_volume(si["index"], volume)
+        else:
+            _LOGGER.debug("Volume cached for %s — no active Mopidy stream", self._sink_name)
         self.async_write_ha_state()
 
     async def async_mute_volume(self, mute: bool) -> None:
