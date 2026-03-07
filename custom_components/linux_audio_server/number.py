@@ -155,8 +155,7 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
                     )
                     return
 
-            await self.coordinator.async_request_refresh()
-
+            # No refresh — volume applied async by backend (202); next poll will update
         except Exception as err:
             _LOGGER.error("Failed to set %s volume: %s", self._source_name, err)
 
@@ -182,7 +181,7 @@ class TTSVolumeNumber(SourceVolumeNumber):
         entry: ConfigEntry,
     ) -> None:
         """Initialize TTS volume control."""
-        super().__init__(coordinator, entry, "TTS", "Mopidy Player 1 (TTS)", "tts")
+        super().__init__(coordinator, entry, "TTS", "mopidy-player1", "tts")
 
 
 class SpotifyVolumeNumber(SourceVolumeNumber):

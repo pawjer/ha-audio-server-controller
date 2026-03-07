@@ -173,9 +173,9 @@ class MopidyPlayersSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the number of active players."""
+        """Return the number of available players."""
         players = self.coordinator.data.get("players", [])
-        return len([p for p in players if p.get("active", False)])
+        return len([p for p in players if p.get("available", False)])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -185,9 +185,9 @@ class MopidyPlayersSensor(CoordinatorEntity, SensorEntity):
         return {
             "players": [
                 {
-                    "name": player.get("name"),
-                    "active": player.get("active", False),
-                    "status": player.get("status"),
+                    "id": player.get("id"),
+                    "available": player.get("available", False),
+                    "state": player.get("state"),
                 }
                 for player in players
             ],

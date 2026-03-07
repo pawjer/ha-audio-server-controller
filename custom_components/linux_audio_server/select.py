@@ -186,33 +186,27 @@ class SinkRadioStationSelect(CoordinatorEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return currently playing station on this sink if any."""
-        # Check which player is assigned to this sink
+        # player_assignments is {sink_name: player_id}
         player_assignments = self.coordinator.data.get("player_assignments", {})
-        assigned_player = None
-
-        for player_id, sink_name in player_assignments.items():
-            if sink_name == self._sink_name:
-                assigned_player = player_id
-                break
+        assigned_player = player_assignments.get(self._sink_name)
 
         if not assigned_player:
             return "Off"
 
-        # Get playback status for this player
-        players_data = self.coordinator.data.get("players", {})
-        player_data = players_data.get(assigned_player, {})
+        # players is a list of player dicts with "id" key
+        players = self.coordinator.data.get("players", [])
+        player_data = next((p for p in players if p.get("id") == assigned_player), {})
 
         if player_data.get("state") not in ["playing", "paused"]:
             return "Off"
 
         # Check if current track title matches a radio station name
-        track = player_data.get("current_track", {})
+        track = player_data.get("current_track") or {}
         title = track.get("name")
 
         if title and title in self.options:
             return title
 
-        # If playing but not a recognized station, show first non-Off option or Off
         return "Off"
 
     async def async_select_option(self, option: str) -> None:
@@ -376,7 +370,7 @@ class TTSSinkSelect(SourceSinkRouterSelect):
         entry: ConfigEntry,
     ) -> None:
         """Initialize TTS sink router."""
-        super().__init__(coordinator, entry, "TTS", "Mopidy Player 1 (TTS)", "tts")
+        super().__init__(coordinator, entry, "TTS", "mopidy-player1", "tts")
         self._attr_icon = "mdi:text-to-speech"
 
 
