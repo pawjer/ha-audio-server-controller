@@ -53,10 +53,9 @@ async def async_setup_entry(
 class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
     """Base class for source volume control.
 
-    Always available.  When the source is actively streaming, controls
-    the PulseAudio stream (sink-input) volume.  When idle, falls back to
-    the volume of the source's default output sink so the user can
-    pre-adjust the speaker level before the source connects.
+    When streaming: shows and controls the live stream volume.
+    When idle: shows the last known stream volume (cached in memory).
+    Setting while idle updates the cache only — no API call, no sink cascade.
     """
 
     _attr_has_entity_name = False
@@ -82,6 +81,7 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
         self._source_default_id = source_default_id
         self._attr_unique_id = f"{entry.entry_id}_{source_name.lower().replace(' ', '_')}_volume"
         self._attr_name = f"{source_name} Volume"
+        self._last_volume: float = 0.5
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -113,22 +113,23 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
         return self.coordinator.last_update_success
 
     @property
-    def native_value(self) -> float | None:
-        """Return current volume level from the active stream, or None when idle."""
+    def native_value(self) -> float:
+        """Return stream volume when active, or last known volume when idle."""
         sink_input = self._find_sink_input()
         if sink_input:
-            return sink_input.get("volume", 0.0)
-        return None
+            self._last_volume = sink_input.get("volume", self._last_volume)
+        return self._last_volume
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set the volume level of the active stream. No-op when idle."""
+        """Set stream volume when active. When idle, caches value only — no API call."""
+        self._last_volume = value
         try:
             sink_input = self._find_sink_input()
             if sink_input:
                 _LOGGER.info("Setting %s stream volume to %.2f", self._source_name, value)
                 await self.coordinator.client.set_stream_volume(sink_input["index"], value)
             else:
-                _LOGGER.debug("Ignoring %s volume set — no active stream", self._source_name)
+                _LOGGER.debug("Caching %s volume %.2f — no active stream", self._source_name, value)
         except Exception as err:
             _LOGGER.error("Failed to set %s volume: %s", self._source_name, err)
 
