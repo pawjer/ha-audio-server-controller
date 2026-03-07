@@ -112,28 +112,21 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
 
     @property
     def native_value(self) -> float | None:
-        """Return current volume level.
+        """Return current volume level from the active stream, or None when idle.
 
-        Priority: active stream volume > default sink volume.
+        Only reports a value when the source is actively streaming — avoids
+        multiple source sliders all reflecting the same sink volume when idle.
         """
         sink_input = self._find_sink_input()
         if sink_input:
             return sink_input.get("volume", 0.0)
-
-        # Fall back to default sink volume
-        default_sink = self._default_sink_name()
-        if default_sink:
-            for sink in self.coordinator.data.get("sinks", []):
-                if sink["name"] == default_sink:
-                    return sink.get("volume")
-
         return None
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set the volume level.
+        """Set the volume level of the active stream.
 
-        When the source is active, sets the stream volume.
-        When idle, sets the default output sink volume.
+        Only operates when the source is streaming — does not fall back to
+        changing the sink volume, which would affect all sources sharing that sink.
         """
         try:
             sink_input = self._find_sink_input()
@@ -141,21 +134,10 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
                 _LOGGER.info("Setting %s stream volume to %.2f", self._source_name, value)
                 await self.coordinator.client.set_stream_volume(sink_input["index"], value)
             else:
-                default_sink = self._default_sink_name()
-                if default_sink:
-                    _LOGGER.info(
-                        "Setting %s default sink (%s) volume to %.2f",
-                        self._source_name, default_sink, value,
-                    )
-                    await self.coordinator.client.set_sink_volume(default_sink, value)
-                else:
-                    _LOGGER.warning(
-                        "Cannot set volume for %s: no active stream and no default sink configured",
-                        self._source_name,
-                    )
-                    return
-
-            # No refresh — volume applied async by backend (202); next poll will update
+                _LOGGER.debug(
+                    "Ignoring %s volume set — no active stream",
+                    self._source_name,
+                )
         except Exception as err:
             _LOGGER.error("Failed to set %s volume: %s", self._source_name, err)
 
