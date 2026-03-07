@@ -95,18 +95,23 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Failed to fetch source defaults: %s", err)
                 source_defaults_data = {"source_defaults": {}}
 
-            # Fetch latency offsets for all BT sinks
+            # Fetch latency offsets for all BT sinks in parallel
+            bt_sink_names = [
+                sink.get("name", "")
+                for sink in sinks_data.get("sinks", [])
+                if sink.get("name", "").startswith("bluez_output.")
+            ]
             latency_offsets: dict[str, int] = {}
-            for sink in sinks_data.get("sinks", []):
-                sink_name = sink.get("name", "")
-                if sink_name.startswith("bluez_output."):
+            if bt_sink_names:
+                async def _fetch_offset(sink_name):
                     try:
                         data = await self.client.get_sink_latency_offset(sink_name)
-                        offset = data.get("offset_ms", 0)
-                        if offset:
-                            latency_offsets[sink_name] = offset
+                        return sink_name, data.get("offset_ms", 0)
                     except ApiClientError:
-                        pass
+                        return sink_name, 0
+
+                offset_results = await asyncio.gather(*(_fetch_offset(n) for n in bt_sink_names))
+                latency_offsets = {name: offset for name, offset in offset_results if offset}
 
             result = {
                 "sinks": sinks_data.get("sinks", []),

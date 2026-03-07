@@ -441,12 +441,13 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
         try:
             address = call.data["address"]
-            await coordinator.client.connect_and_set_default_bluetooth(address)
+            # connect-and-set-default endpoint removed; connect only
+            await coordinator.client.connect_bluetooth(address)
             await coordinator.async_request_refresh()
-            _LOGGER.info("Connected and set Bluetooth device %s as default", address)
+            _LOGGER.info("Connected Bluetooth device %s", address)
         except ApiClientError as err:
-            _LOGGER.error("Failed to connect and set default Bluetooth device: %s", err)
-            raise HomeAssistantError(f"Failed to connect and set default Bluetooth device: {err}") from err
+            _LOGGER.error("Failed to connect Bluetooth device: %s", err)
+            raise HomeAssistantError(f"Failed to connect Bluetooth device: {err}") from err
 
     async def handle_tts_speak(call: ServiceCall) -> None:
         """Handle text-to-speech playback."""

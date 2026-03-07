@@ -241,22 +241,13 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                     app_name,
                     sink_input.get("sink")
                 )
-                # Match "Mopidy Player 2@unix:/run/pulse/native" -> "player2"
-                # Match "Mopidy Player 1 (TTS)@unix:/run/pulse/native" -> "player1"
-                if "Mopidy Player" in app_name:
-                    # Extract player number
-                    if "Player 1" in app_name:
-                        _LOGGER.debug("[%s] Active player from sink-input: player1", self._sink_name)
-                        return "player1"
-                    elif "Player 2" in app_name:
-                        _LOGGER.debug("[%s] Active player from sink-input: player2", self._sink_name)
-                        return "player2"
-                    elif "Player 3" in app_name:
-                        _LOGGER.debug("[%s] Active player from sink-input: player3", self._sink_name)
-                        return "player3"
-                    elif "Player 4" in app_name:
-                        _LOGGER.debug("[%s] Active player from sink-input: player4", self._sink_name)
-                        return "player4"
+                # Match native PipeWire node name: "mopidy-player2" -> "player2"
+                # Match PulseAudio compat name: "Mopidy Player 2@unix:/run/pulse/native" -> "player2"
+                for n in range(1, 7):
+                    if f"mopidy-player{n}" in app_name or f"Player {n}" in app_name:
+                        pid = f"player{n}"
+                        _LOGGER.debug("[%s] Active player from sink-input: %s", self._sink_name, pid)
+                        return pid
 
         _LOGGER.debug("[%s] No active player found in sink-inputs", self._sink_name)
         return None
@@ -525,12 +516,15 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         await self.coordinator.client.set_sink_volume(self._sink_name, volume)
-        await self.coordinator.async_request_refresh()
+        # Optimistic update — backend applies async via VolumeController (returns 202)
+        self._attr_volume_level = volume
+        self.async_write_ha_state()
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute or unmute the media player."""
         await self.coordinator.client.set_sink_mute(self._sink_name, mute)
-        await self.coordinator.async_request_refresh()
+        self._attr_is_volume_muted = mute
+        self.async_write_ha_state()
 
     async def async_select_source(self, source: str) -> None:
         """Select input source (set as default sink)."""
