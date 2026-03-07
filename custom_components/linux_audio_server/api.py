@@ -470,14 +470,6 @@ class LinuxAudioServerApiClient:
             {"offset_ms": offset_ms},
         )
 
-    async def auto_sync_combined_sink(self, combined_name: str) -> dict[str, Any]:
-        """Measure per-slave BT latency and apply equalizing offsets.
-
-        Audio must be actively playing through the combined sink.
-        """
-        encoded = quote(combined_name, safe="")
-        return await self._request("POST", f"/api/audio/combined/{encoded}/auto-sync")
-
     async def get_source_defaults(self) -> dict[str, Any]:
         """Get default sink assignments for sources (radio, spotify, airplay, tts)."""
         return await self._request("GET", "/api/audio/source-defaults")
