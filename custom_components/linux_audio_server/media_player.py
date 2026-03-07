@@ -112,12 +112,30 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         self._is_bluetooth = self._sink_name.startswith("bluez_output.")
         self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
         self._last_volume: float = 0.5
+        self._was_streaming: bool = False
+
+    async def async_added_to_hass(self) -> None:
+        """Initialise _was_streaming so we don't push volume on HA restart."""
+        await super().async_added_to_hass()
+        self._was_streaming = self._get_mopidy_stream_for_sink() is not None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         _LOGGER.debug("Coordinator update received for %s", self._sink_name)
+        si = self._get_mopidy_stream_for_sink()
+        is_streaming = si is not None
+        if is_streaming and not self._was_streaming:
+            self.hass.async_create_task(self._apply_cached_volume(si["index"]))
+        self._was_streaming = is_streaming
         super()._handle_coordinator_update()
+
+    async def _apply_cached_volume(self, index: int) -> None:
+        try:
+            await self.coordinator.client.set_stream_volume(index, self._last_volume)
+            _LOGGER.debug("Applied cached volume %.2f to new stream on %s", self._last_volume, self._sink_name)
+        except Exception as err:
+            _LOGGER.error("Failed to apply cached volume on %s: %s", self._sink_name, err)
 
     def _extract_bluetooth_address(self) -> str | None:
         """Extract Bluetooth MAC address from sink name.
