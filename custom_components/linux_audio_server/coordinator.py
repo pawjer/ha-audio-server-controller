@@ -43,13 +43,18 @@ class LinuxAudioServerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Fetch core data in parallel
             # Note: sinks_data already contains default_sink AND combined sinks
             core_start = time.time()
-            sinks_data, sink_inputs_data, playback_data = await asyncio.gather(
+            sinks_data, sink_inputs_data = await asyncio.gather(
                 self.client.get_sinks(),
                 self.client.get_sink_inputs(),
-                self.client.get_playback_status(),
             )
             core_time = time.time() - core_start
             _LOGGER.debug("Core data fetched in %.3fs", core_time)
+
+            playback_data = {}
+            try:
+                playback_data = await self.client.get_playback_status()
+            except ApiClientError as err:
+                _LOGGER.debug("Failed to fetch playback status: %s", err)
 
             # Gracefully fetch optional features (radio and Bluetooth)
             # If these fail, the integration continues to work

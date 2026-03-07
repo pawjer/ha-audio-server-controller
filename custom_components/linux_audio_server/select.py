@@ -272,8 +272,10 @@ class SourceSinkRouterSelect(CoordinatorEntity, SelectEntity):
     def _find_sink_input(self) -> dict[str, Any] | None:
         """Find the sink-input for this source."""
         sink_inputs = self.coordinator.data.get("sink_inputs", [])
+        identifier = self._source_identifier.lower().replace(" ", "-")
         for sink_input in sink_inputs:
-            if self._source_identifier in sink_input.get("name", ""):
+            name = sink_input.get("name", "").lower().replace(" ", "-")
+            if identifier in name:
                 return sink_input
         return None
 
