@@ -253,66 +253,16 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     def _get_assigned_player_track(self) -> dict[str, Any] | None:
         """Get current track info from the player assigned to this sink."""
-        # First check which player is ACTUALLY routing audio to this sink (ground truth)
-        active_player = self._get_active_player_for_sink()
-
-        if active_player:
-            # Get track from the active player
-            players = self.coordinator.data.get("players", [])
-            _LOGGER.debug(
-                "[%s] Track fetch - Priority 1: Active player '%s', total players: %d",
-                self._sink_name,
-                active_player,
-                len(players)
-            )
-            for player in players:
-                if player.get("id") == active_player:
-                    track = player.get("current_track")
-                    _LOGGER.debug(
-                        "[%s] Track fetch - Found player '%s', current_track: %s",
-                        self._sink_name,
-                        active_player,
-                        track
-                    )
-                    return track
-            _LOGGER.debug(
-                "[%s] Track fetch - Player '%s' not found in players array",
-                self._sink_name,
-                active_player
-            )
-
-        # Fallback: check player assignments (might be stale but better than nothing)
-        player_assignments = self.coordinator.data.get("player_assignments", {})
-        assigned_player = player_assignments.get(self._sink_name)
-
-        if assigned_player:
-            _LOGGER.debug(
-                "[%s] Track fetch - Priority 2: Assigned player '%s'",
-                self._sink_name,
-                assigned_player
-            )
-            # Get the assigned player's data
-            players = self.coordinator.data.get("players", [])
-            for player in players:
-                if player.get("id") == assigned_player:
-                    track = player.get("current_track")
-                    _LOGGER.debug(
-                        "[%s] Track fetch - Found assigned player '%s', current_track: %s",
-                        self._sink_name,
-                        assigned_player,
-                        track
-                    )
-                    return track
-
-        # Fallback to global playback data (player1)
-        playback = self.coordinator.data.get("playback", {})
-        track = playback.get("track")
-        _LOGGER.debug(
-            "[%s] Track fetch - Priority 3: Global playback track: %s",
-            self._sink_name,
-            track
-        )
-        return track
+        assigned_player = self._get_active_player_for_sink()
+        if not assigned_player:
+            return None
+        for player in self.coordinator.data.get("players", []):
+            if player.get("id") == assigned_player:
+                track = player.get("current_track")
+                _LOGGER.debug("[%s] Track from assigned player '%s': %s", self._sink_name, assigned_player, track)
+                return track
+        _LOGGER.debug("[%s] Assigned player '%s' not found in players array", self._sink_name, assigned_player)
+        return None
 
     @property
     def state(self) -> MediaPlayerState:
@@ -321,120 +271,35 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if sink is None:
             return MediaPlayerState.OFF
 
-        _LOGGER.debug("[%s] === Determining state ===", self._sink_name)
-
-        # For multi-player setups, check which player is ACTUALLY routing audio to this sink
-        # This is the ground truth from sink-inputs, not just assignments which can be stale
-        active_player = self._get_active_player_for_sink()
-
-        if active_player:
-            # Get the state of the active player
-            players = self.coordinator.data.get("players", [])
-            _LOGGER.debug(
-                "[%s] Priority 1: Active player from sink-inputs: %s, total players: %d",
-                self._sink_name,
-                active_player,
-                len(players)
-            )
-            for player in players:
-                if player.get("id") == active_player:
-                    player_state = player.get("state")
-                    _LOGGER.debug(
-                        "[%s] Found active player %s with state: %s",
-                        self._sink_name,
-                        active_player,
-                        player_state
-                    )
-                    if player_state == "playing":
-                        _LOGGER.debug("[%s] Returning PLAYING from active player", self._sink_name)
-                        return MediaPlayerState.PLAYING
-                    elif player_state == "paused":
-                        _LOGGER.debug("[%s] Returning PAUSED from active player", self._sink_name)
-                        return MediaPlayerState.PAUSED
-                    elif player_state == "stopped":
-                        _LOGGER.debug("[%s] Returning IDLE from active player (stopped)", self._sink_name)
-                        return MediaPlayerState.IDLE
-                    break
-        else:
-            _LOGGER.debug("[%s] Priority 1: No active player found in sink-inputs", self._sink_name)
-
-        # Fallback: check player assignments (might be stale but better than nothing)
-        player_assignments = self.coordinator.data.get("player_assignments", {})
-        assigned_player = player_assignments.get(self._sink_name)
-
-        _LOGGER.debug(
-            "[%s] Priority 2: Checking player assignments. Assigned player: %s",
-            self._sink_name,
-            assigned_player
-        )
+        assigned_player = self._get_active_player_for_sink()
 
         if assigned_player:
-            # Get the state of the assigned player
-            players = self.coordinator.data.get("players", [])
-            for player in players:
+            for player in self.coordinator.data.get("players", []):
                 if player.get("id") == assigned_player:
                     player_state = player.get("state")
-                    _LOGGER.debug(
-                        "[%s] Found assigned player %s with state: %s",
-                        self._sink_name,
-                        assigned_player,
-                        player_state
-                    )
+                    _LOGGER.debug("[%s] Assigned player '%s' state: %s", self._sink_name, assigned_player, player_state)
                     if player_state == "playing":
-                        _LOGGER.debug("[%s] Returning PLAYING from assigned player", self._sink_name)
                         return MediaPlayerState.PLAYING
                     elif player_state == "paused":
-                        _LOGGER.debug("[%s] Returning PAUSED from assigned player", self._sink_name)
                         return MediaPlayerState.PAUSED
-                    elif player_state == "stopped":
-                        _LOGGER.debug("[%s] Returning IDLE from assigned player (stopped)", self._sink_name)
+                    else:
+                        # stopped, unknown, or anything unrecognised → idle
                         return MediaPlayerState.IDLE
-                    break
-
-        # Fallback to global playback state (player1)
-        playback = self.coordinator.data.get("playback", {})
-        playback_state = playback.get("state")
-
-        _LOGGER.debug(
-            "[%s] Priority 3: Checking global playback state: %s",
-            self._sink_name,
-            playback_state
-        )
-
-        if playback_state == "playing":
-            _LOGGER.debug("[%s] Returning PLAYING from global playback", self._sink_name)
-            return MediaPlayerState.PLAYING
-        elif playback_state == "paused":
-            _LOGGER.debug("[%s] Returning PAUSED from global playback", self._sink_name)
-            return MediaPlayerState.PAUSED
-        elif playback_state == "stopped":
-            _LOGGER.debug("[%s] Returning IDLE from global playback (stopped)", self._sink_name)
+            # Assigned player not in players array (API hiccup) → idle
+            _LOGGER.debug("[%s] Assigned player '%s' not in players array", self._sink_name, assigned_player)
             return MediaPlayerState.IDLE
 
-        # Fallback to sink state if no playback info
-        pa_state = sink.get("state", "IDLE")
-        _LOGGER.debug(
-            "[%s] Priority 4: Falling back to PulseAudio sink state: %s",
-            self._sink_name,
-            pa_state
-        )
-
+        # No assignment — fall back to raw PA sink state
+        pa_state = sink.get("state", "IDLE").upper()
+        _LOGGER.debug("[%s] No assignment, PA sink state: %s", self._sink_name, pa_state)
         if pa_state == "RUNNING":
-            _LOGGER.debug("[%s] Returning ON from PA sink state", self._sink_name)
             return MediaPlayerState.ON
         elif pa_state in ("IDLE", "SUSPENDED"):
-            _LOGGER.debug("[%s] Returning IDLE from PA sink state", self._sink_name)
             return MediaPlayerState.IDLE
-        else:
-            _LOGGER.debug("[%s] Returning OFF from PA sink state", self._sink_name)
-            return MediaPlayerState.OFF
+        return MediaPlayerState.OFF
 
     def _get_mopidy_stream_for_sink(self) -> dict[str, Any] | None:
-        """Find the active Mopidy sink-input routing audio to this sink.
-
-        Uses the same best-player priority as _get_active_player_for_sink so that
-        volume reflects the playing/paused player when multiple streams share a sink.
-        """
+        """Find the sink-input for the assigned player on this sink."""
         active_player = self._get_active_player_for_sink()
         if active_player is None:
             return None
