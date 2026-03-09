@@ -241,55 +241,15 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         return None
 
     def _get_active_player_for_sink(self) -> str | None:
-        """Get the player actually routing audio to this sink (ground truth from sink-inputs).
+        """Return the player assigned to this sink.
 
-        When multiple Mopidy players are routed to the same sink, prefer the one
-        that is actively playing (playing > paused > stopped).
+        Assignments are the source of truth — each media player entity reflects
+        exactly its assigned player, regardless of what other streams (e.g. TTS)
+        may be routed to the same hardware sink.
         """
-        sink_inputs = self.coordinator.data.get("sink_inputs", [])
-        players = self.coordinator.data.get("players", [])
-
-        _LOGGER.debug(
-            "[%s] Checking sink-inputs for active player. Total sink_inputs: %d",
-            self._sink_name,
-            len(sink_inputs)
-        )
-
-        player_states = {p["id"]: p.get("state", "unknown") for p in players}
-
-        # Collect ALL Mopidy players routing to this sink
-        candidates: list[str] = []
-        for sink_input in sink_inputs:
-            if sink_input.get("sink") == self._sink_name:
-                app_name = sink_input.get("name", "")
-                _LOGGER.debug(
-                    "[%s] Found sink-input: name='%s', sink='%s'",
-                    self._sink_name,
-                    app_name,
-                    sink_input.get("sink")
-                )
-                # Match native PipeWire node name: "mopidy-player2" -> "player2"
-                # Match PulseAudio compat name: "Mopidy Player 2@unix:/run/pulse/native" -> "player2"
-                for n in range(1, 7):
-                    if f"mopidy-player{n}" in app_name or f"Player {n}" in app_name:
-                        pid = f"player{n}"
-                        if pid not in candidates:
-                            candidates.append(pid)
-                        break
-
-        if not candidates:
-            _LOGGER.debug("[%s] No active player found in sink-inputs", self._sink_name)
-            return None
-
-        # Prefer playing > paused > stopped — handles multiple players on same sink
-        state_priority = {"playing": 0, "paused": 1, "stopped": 2, "unknown": 3}
-        candidates.sort(key=lambda pid: state_priority.get(player_states.get(pid, "unknown"), 3))
-        best = candidates[0]
-        _LOGGER.debug(
-            "[%s] Active player from sink-input: %s (state=%s, candidates=%s)",
-            self._sink_name, best, player_states.get(best), candidates
-        )
-        return best
+        player = self.coordinator.data.get("player_assignments", {}).get(self._sink_name)
+        _LOGGER.debug("[%s] Assigned player: %s", self._sink_name, player)
+        return player
 
     def _get_assigned_player_track(self) -> dict[str, Any] | None:
         """Get current track info from the player assigned to this sink."""
