@@ -42,7 +42,8 @@ async def async_setup_entry(
     # Add sliders for new sinks as they appear
     known_sinks: set[str] = {s["name"] for s in coordinator.data.get("sinks", [])}
 
-    async def _async_update_sink_entities() -> None:
+    @callback
+    def _async_update_sink_entities() -> None:
         for sink in coordinator.data.get("sinks", []):
             if sink["name"] not in known_sinks:
                 known_sinks.add(sink["name"])
@@ -220,6 +221,7 @@ class SinkVolumeNumber(CoordinatorEntity, NumberEntity):
         self._sink_name = sink["name"]
         self._attr_unique_id = f"{entry.entry_id}_{sink['name']}_sink_volume"
         self._attr_name = f"{sink.get('description', sink['name'])} Volume"
+        self._attr_native_value = sink.get("volume")
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -244,15 +246,18 @@ class SinkVolumeNumber(CoordinatorEntity, NumberEntity):
     def available(self) -> bool:
         return self.coordinator.last_update_success and self._sink_data is not None
 
-    @property
-    def native_value(self) -> float | None:
+    @callback
+    def _handle_coordinator_update(self) -> None:
         sink = self._sink_data
-        return sink.get("volume") if sink else None
+        if sink is not None:
+            self._attr_native_value = sink.get("volume")
+        super()._handle_coordinator_update()
 
     async def async_set_native_value(self, value: float) -> None:
+        self._attr_native_value = value
+        self.async_write_ha_state()
         try:
             await self.coordinator.client.set_sink_volume(self._sink_name, value)
-            await self.coordinator.async_request_refresh()
         except Exception as err:
             _LOGGER.error("Failed to set sink volume for %s: %s", self._sink_name, err)
 
@@ -316,10 +321,11 @@ class SinkLatencyOffsetNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Apply latency offset to the sink."""
+        self._attr_native_value = value
+        self.async_write_ha_state()
         try:
             await self.coordinator.client.set_sink_latency_offset(
                 self._sink_name, int(value)
             )
-            await self.coordinator.async_request_refresh()
         except Exception as err:
             _LOGGER.error("Failed to set latency offset for %s: %s", self._sink_name, err)
