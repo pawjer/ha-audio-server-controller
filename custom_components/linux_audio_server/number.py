@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
@@ -222,6 +223,7 @@ class SinkVolumeNumber(CoordinatorEntity, NumberEntity):
         self._attr_unique_id = f"{entry.entry_id}_{sink['name']}_sink_volume"
         self._attr_name = f"{sink.get('description', sink['name'])} Volume"
         self._attr_native_value = sink.get("volume")
+        self._volume_set_at: float = 0.0
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -248,13 +250,15 @@ class SinkVolumeNumber(CoordinatorEntity, NumberEntity):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        sink = self._sink_data
-        if sink is not None:
-            self._attr_native_value = sink.get("volume")
+        if time.monotonic() - self._volume_set_at > 3.0:
+            sink = self._sink_data
+            if sink is not None:
+                self._attr_native_value = sink.get("volume")
         super()._handle_coordinator_update()
 
     async def async_set_native_value(self, value: float) -> None:
         self._attr_native_value = value
+        self._volume_set_at = time.monotonic()
         self.async_write_ha_state()
         try:
             await self.coordinator.client.set_sink_volume(self._sink_name, value)

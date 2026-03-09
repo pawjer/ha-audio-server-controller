@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from homeassistant.core import callback
@@ -113,6 +114,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
         self._last_volume: float = 0.5  # desired volume, used to restore on new stream
         self._attr_volume_level: float = 0.5  # optimistic display value
+        self._volume_set_at: float = 0.0
         self._was_streaming: bool = False
 
     async def async_added_to_hass(self) -> None:
@@ -128,7 +130,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         is_streaming = si is not None
         if is_streaming and not self._was_streaming:
             self.hass.async_create_task(self._apply_cached_volume(si["index"]))
-        if is_streaming:
+        if is_streaming and time.monotonic() - self._volume_set_at > 3.0:
             self._attr_volume_level = si.get("volume", self._attr_volume_level)
         self._was_streaming = is_streaming
         super()._handle_coordinator_update()
@@ -401,6 +403,7 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         """Set volume on the active Mopidy stream. Shows new value immediately."""
         self._last_volume = volume
         self._attr_volume_level = volume
+        self._volume_set_at = time.monotonic()
         self.async_write_ha_state()
         si = self._get_mopidy_stream_for_sink()
         if si is not None:
