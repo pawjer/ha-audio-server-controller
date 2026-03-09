@@ -241,8 +241,13 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         return None
 
     def _get_active_player_for_sink(self) -> str | None:
-        """Get the player actually routing audio to this sink (ground truth from sink-inputs)."""
+        """Get the player actually routing audio to this sink (ground truth from sink-inputs).
+
+        When multiple Mopidy players are routed to the same sink, prefer the one
+        that is actively playing (playing > paused > stopped).
+        """
         sink_inputs = self.coordinator.data.get("sink_inputs", [])
+        players = self.coordinator.data.get("players", [])
 
         _LOGGER.debug(
             "[%s] Checking sink-inputs for active player. Total sink_inputs: %d",
@@ -250,7 +255,10 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             len(sink_inputs)
         )
 
-        # Look for Mopidy sink-inputs routing to this sink
+        player_states = {p["id"]: p.get("state", "unknown") for p in players}
+
+        # Collect ALL Mopidy players routing to this sink
+        candidates: list[str] = []
         for sink_input in sink_inputs:
             if sink_input.get("sink") == self._sink_name:
                 app_name = sink_input.get("name", "")
@@ -265,11 +273,23 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
                 for n in range(1, 7):
                     if f"mopidy-player{n}" in app_name or f"Player {n}" in app_name:
                         pid = f"player{n}"
-                        _LOGGER.debug("[%s] Active player from sink-input: %s", self._sink_name, pid)
-                        return pid
+                        if pid not in candidates:
+                            candidates.append(pid)
+                        break
 
-        _LOGGER.debug("[%s] No active player found in sink-inputs", self._sink_name)
-        return None
+        if not candidates:
+            _LOGGER.debug("[%s] No active player found in sink-inputs", self._sink_name)
+            return None
+
+        # Prefer playing > paused > stopped — handles multiple players on same sink
+        state_priority = {"playing": 0, "paused": 1, "stopped": 2, "unknown": 3}
+        candidates.sort(key=lambda pid: state_priority.get(player_states.get(pid, "unknown"), 3))
+        best = candidates[0]
+        _LOGGER.debug(
+            "[%s] Active player from sink-input: %s (state=%s, candidates=%s)",
+            self._sink_name, best, player_states.get(best), candidates
+        )
+        return best
 
     def _get_assigned_player_track(self) -> dict[str, Any] | None:
         """Get current track info from the player assigned to this sink."""
@@ -450,12 +470,20 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             return MediaPlayerState.OFF
 
     def _get_mopidy_stream_for_sink(self) -> dict[str, Any] | None:
-        """Find the active Mopidy sink-input routing audio to this sink."""
+        """Find the active Mopidy sink-input routing audio to this sink.
+
+        Uses the same best-player priority as _get_active_player_for_sink so that
+        volume reflects the playing/paused player when multiple streams share a sink.
+        """
+        active_player = self._get_active_player_for_sink()
+        if active_player is None:
+            return None
+        player_num = active_player.replace("player", "")
         for si in self.coordinator.data.get("sink_inputs", []):
             if si.get("sink") != self._sink_name:
                 continue
             name = si.get("name", "")
-            if any(f"mopidy-player{n}" in name or f"Player {n}" in name for n in range(1, 7)):
+            if f"mopidy-player{player_num}" in name or f"Player {player_num}" in name:
                 return si
         return None
 

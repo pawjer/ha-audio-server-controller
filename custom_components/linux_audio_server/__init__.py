@@ -37,11 +37,6 @@ SERVICE_BLUETOOTH_CONNECT_AND_SET_DEFAULT = "bluetooth_connect_and_set_default"
 SERVICE_TTS_SPEAK = "tts_speak"
 SERVICE_GET_TTS_SETTINGS = "get_tts_settings"
 SERVICE_SET_TTS_SETTINGS = "set_tts_settings"
-SERVICE_KEEP_ALIVE_START = "keep_alive_start"
-SERVICE_KEEP_ALIVE_STOP = "keep_alive_stop"
-SERVICE_KEEP_ALIVE_SET_INTERVAL = "keep_alive_set_interval"
-SERVICE_KEEP_ALIVE_ENABLE_SINK = "keep_alive_enable_sink"
-SERVICE_KEEP_ALIVE_DISABLE_SINK = "keep_alive_disable_sink"
 SERVICE_CLEANUP_STALE_BLUETOOTH = "cleanup_stale_bluetooth"
 SERVICE_PAUSE_ALL = "pause_all"
 SERVICE_STOP_ALL = "stop_all"
@@ -494,79 +489,6 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to set TTS settings: %s", err)
             raise HomeAssistantError(f"Failed to set TTS settings: {err}") from err
 
-    async def handle_keep_alive_start(call: ServiceCall) -> None:
-        """Handle starting Bluetooth keep-alive."""
-        coordinator = get_coordinator()
-        if not coordinator:
-            raise HomeAssistantError("No Linux Audio Server instance available")
-
-        try:
-            await coordinator.client.start_keep_alive()
-            await coordinator.async_request_refresh()
-            _LOGGER.info("Started Bluetooth keep-alive")
-        except ApiClientError as err:
-            _LOGGER.error("Failed to start keep-alive: %s", err)
-            raise HomeAssistantError(f"Failed to start keep-alive: {err}") from err
-
-    async def handle_keep_alive_stop(call: ServiceCall) -> None:
-        """Handle stopping Bluetooth keep-alive."""
-        coordinator = get_coordinator()
-        if not coordinator:
-            raise HomeAssistantError("No Linux Audio Server instance available")
-
-        try:
-            await coordinator.client.stop_keep_alive()
-            await coordinator.async_request_refresh()
-            _LOGGER.info("Stopped Bluetooth keep-alive")
-        except ApiClientError as err:
-            _LOGGER.error("Failed to stop keep-alive: %s", err)
-            raise HomeAssistantError(f"Failed to stop keep-alive: {err}") from err
-
-    async def handle_keep_alive_set_interval(call: ServiceCall) -> None:
-        """Handle setting keep-alive interval."""
-        coordinator = get_coordinator()
-        if not coordinator:
-            raise HomeAssistantError("No Linux Audio Server instance available")
-
-        try:
-            interval = call.data["interval"]
-            await coordinator.client.set_keep_alive_interval(interval)
-            await coordinator.async_request_refresh()
-            _LOGGER.info("Set keep-alive interval to %s seconds", interval)
-        except ApiClientError as err:
-            _LOGGER.error("Failed to set keep-alive interval: %s", err)
-            raise HomeAssistantError(f"Failed to set keep-alive interval: {err}") from err
-
-    async def handle_keep_alive_enable_sink(call: ServiceCall) -> None:
-        """Handle enabling keep-alive for a sink."""
-        coordinator = get_coordinator()
-        if not coordinator:
-            raise HomeAssistantError("No Linux Audio Server instance available")
-
-        try:
-            sink_name = call.data["sink_name"]
-            await coordinator.client.enable_keep_alive_for_sink(sink_name)
-            await coordinator.async_request_refresh()
-            _LOGGER.info("Enabled keep-alive for sink: %s", sink_name)
-        except ApiClientError as err:
-            _LOGGER.error("Failed to enable keep-alive for sink: %s", err)
-            raise HomeAssistantError(f"Failed to enable keep-alive for sink: {err}") from err
-
-    async def handle_keep_alive_disable_sink(call: ServiceCall) -> None:
-        """Handle disabling keep-alive for a sink."""
-        coordinator = get_coordinator()
-        if not coordinator:
-            raise HomeAssistantError("No Linux Audio Server instance available")
-
-        try:
-            sink_name = call.data["sink_name"]
-            await coordinator.client.disable_keep_alive_for_sink(sink_name)
-            await coordinator.async_request_refresh()
-            _LOGGER.info("Disabled keep-alive for sink: %s", sink_name)
-        except ApiClientError as err:
-            _LOGGER.error("Failed to disable keep-alive for sink: %s", err)
-            raise HomeAssistantError(f"Failed to disable keep-alive for sink: {err}") from err
-
     async def handle_cleanup_stale_bluetooth(call: ServiceCall) -> None:
         """Handle cleanup of stale Bluetooth speaker entities."""
         coordinator = get_coordinator()
@@ -709,14 +631,6 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         vol.Required("sink_name"): cv.string,
     })
 
-    keep_alive_interval_schema = vol.Schema({
-        vol.Required("interval"): vol.All(vol.Coerce(int), vol.Range(min=30, max=600)),
-    })
-
-    keep_alive_sink_schema = vol.Schema({
-        vol.Required("sink_name"): cv.string,
-    })
-
     bluetooth_scan_schema = vol.Schema({
         vol.Optional("duration", default=10): vol.All(vol.Coerce(int), vol.Range(min=5, max=30)),
     })
@@ -839,34 +753,6 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         SERVICE_SET_TTS_SETTINGS,
         handle_set_tts_settings,
         schema=set_tts_settings_schema,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_KEEP_ALIVE_START,
-        handle_keep_alive_start,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_KEEP_ALIVE_STOP,
-        handle_keep_alive_stop,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_KEEP_ALIVE_SET_INTERVAL,
-        handle_keep_alive_set_interval,
-        schema=keep_alive_interval_schema,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_KEEP_ALIVE_ENABLE_SINK,
-        handle_keep_alive_enable_sink,
-        schema=keep_alive_sink_schema,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_KEEP_ALIVE_DISABLE_SINK,
-        handle_keep_alive_disable_sink,
-        schema=keep_alive_sink_schema,
     )
     hass.services.async_register(
         DOMAIN,
