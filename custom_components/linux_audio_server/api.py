@@ -431,6 +431,14 @@ class LinuxAudioServerApiClient:
         """Assign a specific player to a sink."""
         return await self._request("POST", "/api/players/assign", {"player": player_name, "sink": sink_name})
 
+    async def set_player_volume(self, player_id: str, volume: int) -> dict[str, Any]:
+        """Set Mopidy mixer volume for a player (0-100)."""
+        return await self._request(
+            "POST",
+            "/api/playback/volume",
+            {"player": player_id, "volume": volume},
+        )
+
     async def get_sink_latency_offset(self, sink_name: str) -> dict[str, Any]:
         """Get stored latency offset for a sink (ms)."""
         encoded = quote(sink_name, safe="")
