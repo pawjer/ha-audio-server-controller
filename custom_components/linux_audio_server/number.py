@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import suppress
 from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -56,7 +58,7 @@ async def async_setup_entry(
     coordinator.async_add_listener(_async_update_sink_entities)
 
 
-class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
+class SourceVolumeNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
     """Base class for source volume control.
 
     When streaming: shows and controls the live stream volume.
@@ -120,8 +122,11 @@ class SourceVolumeNumber(CoordinatorEntity, NumberEntity):
         return self.coordinator.last_update_success
 
     async def async_added_to_hass(self) -> None:
-        """Initialise _was_streaming so we don't push volume on HA restart."""
+        """Restore last volume and initialise streaming state on HA restart."""
         await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            with suppress(ValueError, TypeError):
+                self._last_volume = float(last_state.state)
         self._was_streaming = self._find_sink_input() is not None
 
     @callback

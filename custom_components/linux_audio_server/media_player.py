@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-import time
+from contextlib import suppress
 from typing import Any
 
 from homeassistant.core import callback
@@ -19,6 +19,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -90,7 +91,7 @@ async def async_setup_entry(
     _LOGGER.info("[MEDIA_PLAYER_SETUP] Setup complete - dynamic entity creation handled by __init__.py")
 
 
-class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
+class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity, RestoreEntity):
     """Representation of an audio sink as a media player."""
 
     _attr_has_entity_name = False
@@ -112,21 +113,36 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         # Check if this is a Bluetooth sink
         self._is_bluetooth = self._sink_name.startswith("bluez_output.")
         self._bluetooth_address = self._extract_bluetooth_address() if self._is_bluetooth else None
-        self._attr_volume_level: float = 0.5  # optimistic display value
-        self._volume_set_at: float = 0.0
+        self._last_volume: float = 0.5
+        self._was_streaming: bool = False
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last volume and initialise streaming state on HA restart."""
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            with suppress(ValueError, TypeError):
+                self._last_volume = float(last_state.attributes.get("volume_level", 0.5))
+        self._was_streaming = self._get_mopidy_stream_for_sink() is not None
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        _LOGGER.debug("Coordinator update received for %s", self._sink_name)
-        if time.monotonic() - self._volume_set_at > 3.0:
-            assigned = self._get_active_player_for_sink()
-            if assigned:
-                for player in self.coordinator.data.get("players", []):
-                    if player.get("id") == assigned and player.get("volume") is not None:
-                        self._attr_volume_level = player["volume"] / 100
-                        break
+        """Push cached volume to stream the moment it first appears."""
+        sink_input = self._get_mopidy_stream_for_sink()
+        is_streaming = sink_input is not None
+        if is_streaming and not self._was_streaming:
+            self.hass.async_create_task(
+                self._apply_cached_volume(sink_input["index"])
+            )
+        self._was_streaming = is_streaming
         super()._handle_coordinator_update()
+
+    async def _apply_cached_volume(self, index: int) -> None:
+        """Push cached volume to a newly appeared Mopidy stream node."""
+        try:
+            await self.coordinator.client.set_stream_volume(index, self._last_volume)
+            _LOGGER.debug("Applied cached volume %.2f to new stream on %s", self._last_volume, self._sink_name)
+        except Exception as err:
+            _LOGGER.error("Failed to apply cached volume for %s: %s", self._sink_name, err)
 
     def _extract_bluetooth_address(self) -> str | None:
         """Extract Bluetooth MAC address from sink name.
@@ -305,8 +321,8 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     @property
     def volume_level(self) -> float:
-        """Optimistic volume level — updated from server on coordinator refresh."""
-        return self._attr_volume_level
+        """Last user-set volume — never overwritten by coordinator polls."""
+        return self._last_volume
 
     @property
     def is_volume_muted(self) -> bool | None:
@@ -386,15 +402,14 @@ class AudioSinkMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         }
 
     async def async_set_volume_level(self, volume: float) -> None:
-        """Set Mopidy mixer volume for the assigned player."""
-        self._attr_volume_level = volume
-        self._volume_set_at = time.monotonic()
+        """Set PipeWire stream node volume for the assigned Mopidy player."""
+        self._last_volume = volume
         self.async_write_ha_state()
-        assigned = self._get_active_player_for_sink()
-        if assigned:
-            await self.coordinator.client.set_player_volume(assigned, round(volume * 100))
+        sink_input = self._get_mopidy_stream_for_sink()
+        if sink_input:
+            await self.coordinator.client.set_stream_volume(sink_input["index"], volume)
         else:
-            _LOGGER.debug("No assigned player for %s — volume not sent", self._sink_name)
+            _LOGGER.debug("No active stream for %s — volume cached only", self._sink_name)
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute or unmute the media player."""
